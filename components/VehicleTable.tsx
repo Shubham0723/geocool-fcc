@@ -29,11 +29,11 @@ export function VehicleTable({ vehicles, onViewVehicle }: VehicleTableProps) {
   return (
     <Card className="w-full">
       <CardHeader>
-        <CardTitle>Vehicle List</CardTitle>
+        <CardTitle className="text-lg sm:text-xl">Vehicle List</CardTitle>
       </CardHeader>
       <CardContent className="p-0">
         <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-400 transition-colors">
-          <table className="w-full min-w-[1400px]">
+          <table className="w-full min-w-[2400px]">
             <thead>
               <tr className="border-b border-gray-200">
                 <th className="text-left py-3 px-2 font-semibold text-gray-700 min-w-[120px]">
@@ -84,14 +84,47 @@ export function VehicleTable({ vehicles, onViewVehicle }: VehicleTableProps) {
                 <th className="text-left py-3 px-2 font-semibold text-gray-700 min-w-[120px]">
                   Registration Date
                 </th>
-                <th className="text-left py-3 px-2 font-semibold text-gray-700 min-w-[120px]">
-                  Insurance Expiry
+                <th className="text-left py-3 px-2 font-semibold text-gray-700 min-w-[120px] bg-orange-100">
+                  Insurance
                 </th>
-                <th className="text-left py-3 px-2 font-semibold text-gray-700 min-w-[120px]">
-                  Fitness Expiry
+                <th className="text-left py-3 px-2 font-semibold text-gray-700 min-w-[120px] bg-orange-100">
+                  Roadtax
                 </th>
-                <th className="text-left py-3 px-2 font-semibold text-gray-700 min-w-[120px]">
-                  PUC Expiry
+                <th className="text-left py-3 px-2 font-semibold text-gray-700 min-w-[120px] bg-orange-100">
+                  PUC
+                </th>
+                <th className="text-left py-3 px-2 font-semibold text-gray-700 min-w-[120px] bg-orange-100">
+                  Fitness
+                </th>
+                <th className="text-left py-3 px-2 font-semibold text-gray-700 min-w-[120px] bg-orange-100">
+                  Goods Permit
+                </th>
+                <th className="text-left py-3 px-2 font-semibold text-gray-700 min-w-[120px] bg-orange-100">
+                  National Permit
+                </th>
+                <th className="text-left py-3 px-2 font-semibold text-gray-700 min-w-[120px] bg-orange-100">
+                  RC
+                </th>
+                <th className="text-left py-3 px-2 font-semibold text-gray-700 min-w-[120px] bg-yellow-100">
+                  Insurance Days Left
+                </th>
+                <th className="text-left py-3 px-2 font-semibold text-gray-700 min-w-[120px] bg-yellow-100">
+                  Road Tax Days Left
+                </th>
+                <th className="text-left py-3 px-2 font-semibold text-gray-700 min-w-[120px] bg-yellow-100">
+                  PUC Days Left
+                </th>
+                <th className="text-left py-3 px-2 font-semibold text-gray-700 min-w-[120px] bg-yellow-100">
+                  Fitness Days Left
+                </th>
+                <th className="text-left py-3 px-2 font-semibold text-gray-700 min-w-[120px] bg-yellow-100">
+                  Goods Permit Days Left
+                </th>
+                <th className="text-left py-3 px-2 font-semibold text-gray-700 min-w-[120px] bg-yellow-100">
+                  National Permit Days Left
+                </th>
+                <th className="text-left py-3 px-2 font-semibold text-gray-700 min-w-[120px] bg-red-100">
+                  Remark
                 </th>
                 <th className="text-left py-3 px-2 font-semibold text-gray-700 min-w-[80px]">
                   Actions
@@ -102,7 +135,7 @@ export function VehicleTable({ vehicles, onViewVehicle }: VehicleTableProps) {
               {vehicles.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={20}
+                    colSpan={31}
                     className="text-center py-8 text-gray-500"
                   >
                     No vehicles found
@@ -142,23 +175,65 @@ export function VehicleTable({ vehicles, onViewVehicle }: VehicleTableProps) {
                         : 'N/A'
                       }
                     </td>
-                    <td className="py-3 px-2 text-xs">
-                      {vehicle.insuranceExpiry 
-                        ? new Date(vehicle.insuranceExpiry).toLocaleDateString()
+                    <td className="py-3 px-2 text-xs bg-orange-50">
+                      {vehicle.insurance 
+                        ? new Date(vehicle.insurance).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' })
                         : 'N/A'
                       }
                     </td>
-                    <td className="py-3 px-2 text-xs">
-                      {vehicle.fitnessExpiry 
-                        ? new Date(vehicle.fitnessExpiry).toLocaleDateString()
+                    <td className="py-3 px-2 text-xs bg-orange-50">
+                      {vehicle.roadtax 
+                        ? new Date(vehicle.roadtax).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' })
                         : 'N/A'
                       }
                     </td>
-                    <td className="py-3 px-2 text-xs">
-                      {vehicle.pucExpiry 
-                        ? new Date(vehicle.pucExpiry).toLocaleDateString()
+                    <td className="py-3 px-2 text-xs bg-orange-50">
+                      {vehicle.puc 
+                        ? new Date(vehicle.puc).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' })
                         : 'N/A'
                       }
+                    </td>
+                    <td className="py-3 px-2 text-xs bg-orange-50">
+                      {vehicle.fitness 
+                        ? new Date(vehicle.fitness).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' })
+                        : 'N/A'
+                      }
+                    </td>
+                    <td className="py-3 px-2 text-xs bg-orange-50">
+                      {vehicle.goodsPermit 
+                        ? new Date(vehicle.goodsPermit).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' })
+                        : 'N/A'
+                      }
+                    </td>
+                    <td className="py-3 px-2 text-xs bg-orange-50">
+                      {vehicle.nationalPermit 
+                        ? new Date(vehicle.nationalPermit).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' })
+                        : 'N/A'
+                      }
+                    </td>
+                    <td className="py-3 px-2 text-xs bg-orange-50">
+                      {vehicle.rc || 'N/A'}
+                    </td>
+                    <td className={`py-3 px-2 text-xs bg-yellow-50 ${vehicle.insuranceDaysLeft && vehicle.insuranceDaysLeft < 0 ? 'bg-red-100 text-red-600' : ''}`}>
+                      {vehicle.insuranceDaysLeft !== undefined ? vehicle.insuranceDaysLeft : 'N/A'}
+                    </td>
+                    <td className={`py-3 px-2 text-xs bg-yellow-50 ${vehicle.roadTaxDaysLeft && vehicle.roadTaxDaysLeft < 0 ? 'bg-red-100 text-red-600' : ''}`}>
+                      {vehicle.roadTaxDaysLeft !== undefined ? vehicle.roadTaxDaysLeft : 'N/A'}
+                    </td>
+                    <td className={`py-3 px-2 text-xs bg-yellow-50 ${vehicle.pucDaysLeft && vehicle.pucDaysLeft < 0 ? 'bg-red-100 text-red-600' : ''}`}>
+                      {vehicle.pucDaysLeft !== undefined ? vehicle.pucDaysLeft : 'N/A'}
+                    </td>
+                    <td className={`py-3 px-2 text-xs bg-yellow-50 ${vehicle.fitnessDaysLeft && vehicle.fitnessDaysLeft < 0 ? 'bg-red-100 text-red-600' : ''}`}>
+                      {vehicle.fitnessDaysLeft !== undefined ? vehicle.fitnessDaysLeft : 'N/A'}
+                    </td>
+                    <td className={`py-3 px-2 text-xs bg-yellow-50 ${vehicle.goodsPermitDaysLeft && vehicle.goodsPermitDaysLeft < 0 ? 'bg-red-100 text-red-600' : ''}`}>
+                      {vehicle.goodsPermitDaysLeft !== undefined ? vehicle.goodsPermitDaysLeft : 'N/A'}
+                    </td>
+                    <td className={`py-3 px-2 text-xs bg-yellow-50 ${vehicle.nationalPermitDaysLeft && vehicle.nationalPermitDaysLeft < 0 ? 'bg-red-100 text-red-600' : ''}`}>
+                      {vehicle.nationalPermitDaysLeft !== undefined ? vehicle.nationalPermitDaysLeft : 'N/A'}
+                    </td>
+                    <td className="py-3 px-2 text-xs bg-red-50">
+                      {vehicle.remark || ''}
                     </td>
                     <td className="py-3 px-2">
                       <Button

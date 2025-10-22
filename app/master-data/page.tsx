@@ -56,6 +56,15 @@ export default function MasterDataPage() {
     npDocument: '',
     insuranceDocument: '',
     fitnessDocument: '',
+    // New fields with dummy data
+    insurance: new Date('2025-07-04'),
+    roadtax: new Date('2025-07-31'),
+    puc: new Date('2025-08-20'),
+    fitness: new Date('2026-08-20'),
+    goodsPermit: new Date('2029-08-22'),
+    nationalPermit: new Date('2025-08-22'),
+    rc: 'RC In Office',
+    remark: '',
   });
 
   const handleViewVehicle = (vehicle: Vehicle) => {
@@ -77,12 +86,12 @@ export default function MasterDataPage() {
           year: new Date().getFullYear(),
           color: 'White',
           fuelType: 'diesel',
-        seatingCapacity: 0,
-        cargoLength: 0,
-        engineNumber: '',
-        chassisNumber: '',
-        vehicleDetails: '',
-        acModel: '',
+          seatingCapacity: 0,
+          cargoLength: 0,
+          engineNumber: '',
+          chassisNumber: '',
+          vehicleDetails: '',
+          acModel: '',
           registrationDate: new Date(),
           insuranceExpiry: new Date(),
           fitnessExpiry: new Date(),
@@ -91,7 +100,16 @@ export default function MasterDataPage() {
           npDocument: '',
           insuranceDocument: '',
           fitnessDocument: '',
-      });
+          // New fields with dummy data
+          insurance: new Date('2025-07-04'),
+          roadtax: new Date('2025-07-31'),
+          puc: new Date('2025-08-20'),
+          fitness: new Date('2026-08-20'),
+          goodsPermit: new Date('2029-08-22'),
+          nationalPermit: new Date('2025-08-22'),
+          rc: 'RC In Office',
+          remark: '',
+        });
     }
   };
 
@@ -108,9 +126,9 @@ export default function MasterDataPage() {
   };
 
   return (
-    <div className="p-8 space-y-8 w-full max-w-full overflow-hidden">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-gray-900">Master Data</h1>
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6 lg:space-y-8 w-full max-w-full overflow-hidden">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Master Data</h1>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
             <Button className="bg-red-600 hover:bg-red-700">
@@ -118,7 +136,7 @@ export default function MasterDataPage() {
               Add Vehicle
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[700px]">
+          <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Add New Vehicle</DialogTitle>
             </DialogHeader>
@@ -150,7 +168,7 @@ export default function MasterDataPage() {
           </div>
 
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-        <DialogContent className="sm:max-w-[800px] max-h-[80vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Vehicle Details</DialogTitle>
           </DialogHeader>

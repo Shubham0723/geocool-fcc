@@ -46,7 +46,7 @@ export function VehicleDetails({ vehicle, onVehicleUpdate }: VehicleDetailsProps
       {/* Basic Information */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">Basic Information</h3>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <Label className="text-gray-600">Vehicle Number</Label>
             <p className="text-lg font-semibold text-red-600">
@@ -91,7 +91,7 @@ export function VehicleDetails({ vehicle, onVehicleUpdate }: VehicleDetailsProps
       {/* Physical Properties */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">Physical Properties</h3>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <Label className="text-gray-600">Year</Label>
             <p className="text-lg font-semibold">
@@ -153,7 +153,7 @@ export function VehicleDetails({ vehicle, onVehicleUpdate }: VehicleDetailsProps
       {/* Location Information */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">Location Information</h3>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <Label className="text-gray-600">Branch</Label>
             <p className="text-lg font-semibold">
@@ -166,7 +166,7 @@ export function VehicleDetails({ vehicle, onVehicleUpdate }: VehicleDetailsProps
       {/* Important Dates */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">Important Dates</h3>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <Label className="text-gray-600">Registration Date</Label>
             <p className="text-lg font-semibold">
@@ -229,7 +229,7 @@ export function VehicleDetails({ vehicle, onVehicleUpdate }: VehicleDetailsProps
           }}
         />
         
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {currentVehicle.pucDocument && (
             <div>
               <Label className="text-gray-600">PUC Document</Label>
@@ -276,7 +276,7 @@ export function VehicleDetails({ vehicle, onVehicleUpdate }: VehicleDetailsProps
       {/* System Information */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">System Information</h3>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <Label className="text-gray-600">Created At</Label>
             <p className="text-lg font-semibold">

@@ -22,10 +22,10 @@ export async function GET() {
   } catch (error) {
     console.error('MongoDB connection error:', error);
     return NextResponse.json(
-      { 
-        success: false, 
-        error: 'MongoDB connection failed', 
-        details: error.message 
+      {
+        success: false,
+        error: 'MongoDB connection failed',
+        details: error instanceof Error ? error.message : String(error)
       },
       { status: 500 }
     );

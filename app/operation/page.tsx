@@ -58,8 +58,8 @@ export default function OperationPage() {
   }, []);
 
   useEffect(() => {
-    if (selectedVehicle) {
-      fetchOperations(selectedVehicle._id);
+    if (selectedVehicle && selectedVehicle._id) {
+      fetchOperations(selectedVehicle._id.toString());
     }
   }, [selectedVehicle]);
 
@@ -168,7 +168,7 @@ export default function OperationPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          vehicleId: selectedVehicle._id,
+          vehicleNumber: selectedVehicle.vehicleNumber,
           operationType: operationData.operationType,
           amount: amount,
           description: operationData.description,
@@ -187,7 +187,7 @@ export default function OperationPage() {
           amount: '',
           description: '',
         });
-        fetchOperations(selectedVehicle._id);
+        fetchOperations(selectedVehicle._id?.toString() || '');
       } else {
         toast({
           title: 'Error',
@@ -205,8 +205,8 @@ export default function OperationPage() {
   };
 
   return (
-    <div className="p-8 space-y-8">
-      <h1 className="text-3xl font-bold text-gray-900">Operation</h1>
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6 lg:space-y-8">
+      <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Operation</h1>
 
       <Card className="border-l-4 border-l-red-600">
         <CardHeader>
@@ -216,7 +216,7 @@ export default function OperationPage() {
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="vehicle-search">Search Vehicle</Label>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <Input
                   id="vehicle-search"
                   placeholder="Enter vehicle number, model, or branch..."
@@ -243,7 +243,7 @@ export default function OperationPage() {
               <div className="max-h-60 overflow-y-auto border rounded-md">
                 {filteredVehicles.map((vehicle) => (
                   <div
-                    key={vehicle._id}
+                    key={vehicle._id?.toString() || Math.random()}
                     className="p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0"
                     onClick={() => {
                       setSelectedVehicle(vehicle);
@@ -280,7 +280,7 @@ export default function OperationPage() {
                 <h3 className="font-semibold text-red-900 mb-2">
                   Selected Vehicle Details
                 </h3>
-                <div className="grid grid-cols-3 gap-4 text-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
                   <div>
                     <span className="text-gray-600">Number:</span>
                     <p className="font-medium">{selectedVehicle.vehicleNumber}</p>
@@ -409,7 +409,7 @@ export default function OperationPage() {
                     <tbody>
                       {operations.map((operation) => (
                         <tr
-                          key={operation._id}
+                          key={operation._id?.toString() || `operation-${Math.random()}`}
                           className="border-b border-gray-100 hover:bg-gray-50"
                         >
                           <td className="py-3 px-4">

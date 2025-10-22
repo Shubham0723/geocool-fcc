@@ -19,6 +19,7 @@ import { format } from 'date-fns';
 
 type OperationWithVehicle = Operation & {
   vehicles?: Vehicle;
+  vehicleNumber?: string;
 };
 
 export default function OperationsPage() {
@@ -147,12 +148,12 @@ export default function OperationsPage() {
   );
 
   return (
-    <div className="p-8 space-y-8">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-gray-900">Operations</h1>
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6 lg:space-y-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Operations</h1>
       </div>
 
-      <div className="flex gap-4">
+      <div className="flex flex-wrap gap-2 sm:gap-4">
         <Button
           variant={selectedStatus === 'all' ? 'default' : 'outline'}
           onClick={() => setSelectedStatus('all')}
@@ -194,26 +195,26 @@ export default function OperationsPage() {
             <p className="text-center text-gray-500 py-8">No operations found</p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full min-w-[800px]">
                 <thead>
                   <tr className="border-b border-gray-200">
+                    {/* <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                      ID
+                    </th> */}
                     <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                      Operation ID
+                      Vehicle Number
                     </th>
                     <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                      Vehicle ID
+                      Type
                     </th>
                     <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                      Operation Type
-                    </th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                      Amount (₹)
+                      Amount
                     </th>
                     <th className="text-left py-3 px-4 font-semibold text-gray-700">
                       Description
                     </th>
                     <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                      Operation Date
+                      Date
                     </th>
                     <th className="text-left py-3 px-4 font-semibold text-gray-700">
                       Status
@@ -229,13 +230,13 @@ export default function OperationsPage() {
                       key={operation._id?.toString() || index}
                       className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
                     >
-                      <td className="py-3 px-4 font-mono text-sm text-gray-600">
+                      {/* <td className="py-3 px-4 font-mono text-sm text-gray-600">
                         #{operation._id?.toString().slice(0, 8) || 'N/A'}
-                      </td>
+                      </td> */}
                       <td className="py-3 px-4">
                         <div>
                           <p className="font-medium text-red-600">
-                            {operation.vehicleId?.toString() || 'N/A'}
+                            {operation.vehicleNumber || 'N/A'}
                           </p>
                         </div>
                       </td>

@@ -38,6 +38,21 @@ export interface Vehicle {
   npDocument?: string;
   insuranceDocument?: string;
   fitnessDocument?: string;
+  // New columns from the image
+  insurance?: Date;
+  roadtax?: Date;
+  puc?: Date;
+  fitness?: Date;
+  goodsPermit?: Date;
+  nationalPermit?: Date;
+  rc?: string;
+  insuranceDaysLeft?: number;
+  roadTaxDaysLeft?: number;
+  pucDaysLeft?: number;
+  fitnessDaysLeft?: number;
+  goodsPermitDaysLeft?: number;
+  nationalPermitDaysLeft?: number;
+  remark?: string;
   createdAt: Date;
   updatedAt: Date;
 }

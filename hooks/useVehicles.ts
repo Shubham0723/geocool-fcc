@@ -4,6 +4,27 @@ import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { type Vehicle } from '@/lib/types';
 
+// Helper function to calculate days left
+const calculateDaysLeft = (date: Date): number => {
+  const today = new Date();
+  const diffTime = date.getTime() - today.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  return diffDays;
+};
+
+// Helper function to add calculated days left to vehicle
+const addCalculatedDaysLeft = (vehicle: Vehicle): Vehicle => {
+  return {
+    ...vehicle,
+    insuranceDaysLeft: vehicle.insurance ? calculateDaysLeft(new Date(vehicle.insurance)) : undefined,
+    roadTaxDaysLeft: vehicle.roadtax ? calculateDaysLeft(new Date(vehicle.roadtax)) : undefined,
+    pucDaysLeft: vehicle.puc ? calculateDaysLeft(new Date(vehicle.puc)) : undefined,
+    fitnessDaysLeft: vehicle.fitness ? calculateDaysLeft(new Date(vehicle.fitness)) : undefined,
+    goodsPermitDaysLeft: vehicle.goodsPermit ? calculateDaysLeft(new Date(vehicle.goodsPermit)) : undefined,
+    nationalPermitDaysLeft: vehicle.nationalPermit ? calculateDaysLeft(new Date(vehicle.nationalPermit)) : undefined,
+  };
+};
+
 export function useVehicles() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [filteredVehicles, setFilteredVehicles] = useState<Vehicle[]>([]);
@@ -19,8 +40,9 @@ export function useVehicles() {
       const data = await response.json();
       
       if (response.ok) {
-        setVehicles(data);
-        setFilteredVehicles(data);
+        const vehiclesWithCalculatedDays = data.map(addCalculatedDaysLeft);
+        setVehicles(vehiclesWithCalculatedDays);
+        setFilteredVehicles(vehiclesWithCalculatedDays);
       } else {
         toast({
           title: 'Error',

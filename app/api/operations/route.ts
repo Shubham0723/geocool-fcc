@@ -58,11 +58,14 @@ export async function GET(request: NextRequest) {
       .sort({ createdAt: -1 })
       .toArray();
 
-    const serializedOperations = operations.map((operation) => ({
-      ...operation,
-      _id: operation._id.toString(),
-      vehicleId: operation.vehicleId?.toString?.() || operation.vehicleId,
-    }));
+    const serializedOperations = operations.map((operation) => {
+      const { vehicleId, ...operationWithoutVehicleId } = operation;
+      return {
+        ...operationWithoutVehicleId,
+        _id: operation._id.toString(),
+        vehicleNumber: operation.vehicleNumber || 'N/A',
+      };
+    });
 
     return NextResponse.json(serializedOperations);
   } catch (error) {
@@ -78,17 +81,36 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const db = await getDatabase();
-    const collection = db.collection('operations');
+    const operationsCollection = db.collection('operations');
+    const vehiclesCollection = db.collection('vehicles');
 
-    // Create new operation
+    // Convert vehicleId to vehicleNumber
+    let vehicleNumber = body.vehicleNumber;
+    if (body.vehicleId && !vehicleNumber) {
+      const vehicle = await vehiclesCollection.findOne({ _id: body.vehicleId });
+      if (vehicle) {
+        vehicleNumber = vehicle.vehicleNumber;
+      } else {
+        return NextResponse.json(
+          { success: false, message: 'Vehicle not found' },
+          { status: 404 }
+        );
+      }
+    }
+
+    // Create new operation with vehicleNumber instead of vehicleId
     const newOperation = {
-      ...body,
+      vehicleNumber: vehicleNumber,
+      operationType: body.operationType,
+      amount: body.amount,
+      description: body.description,
+      operationDate: body.operationDate || new Date(),
       status: 'pending',
       createdAt: new Date(),
       updatedAt: new Date(),
     };
 
-    const result = await collection.insertOne(newOperation);
+    const result = await operationsCollection.insertOne(newOperation);
 
     return NextResponse.json({
       success: true,

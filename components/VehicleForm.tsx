@@ -40,7 +40,7 @@ export function VehicleForm({
   return (
     <div className="space-y-4 py-4 max-h-96 overflow-y-auto">
       {/* Basic Information */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="vehicleNumber">Vehicle Number *</Label>
           <Input
@@ -88,7 +88,7 @@ export function VehicleForm({
       </div>
 
       {/* Company Information */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="companyName">Company Name *</Label>
           <Input
@@ -110,7 +110,7 @@ export function VehicleForm({
       </div>
 
       {/* Dimensions and Capacity */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="cargoLength">Cargo Length</Label>
           <Input
@@ -134,7 +134,7 @@ export function VehicleForm({
       </div>
 
       {/* Engine and Chassis */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="engineNumber">Engine Number *</Label>
           <Input

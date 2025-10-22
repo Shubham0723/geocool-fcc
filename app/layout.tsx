@@ -83,7 +83,7 @@ export default function RootLayout({
         ) : (
           <div className="flex min-h-screen bg-gray-50">
             <Sidebar />
-            <main className="flex-1 ml-64 transition-all duration-300 w-full max-w-full overflow-hidden">
+            <main className="flex-1 ml-0 lg:ml-64 transition-all duration-300 w-full max-w-full overflow-hidden">
               {children}
             </main>
           </div>
