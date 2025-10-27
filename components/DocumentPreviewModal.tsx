@@ -41,6 +41,25 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
                 documentUrl.includes('pdf') ||
                 documentType.toLowerCase().includes('pdf');
 
+  // Check if file type is previewable in browser
+  const isImage = documentType.toLowerCase().includes('image') || 
+                  documentType.toLowerCase().includes('jpeg') ||
+                  documentType.toLowerCase().includes('jpg') ||
+                  documentType.toLowerCase().includes('png') ||
+                  documentType.toLowerCase().includes('gif') ||
+                  documentType.toLowerCase().includes('webp');
+  
+  // Check if it's an Office document that can be previewed
+  const isOfficeDoc = documentType.toLowerCase().includes('wordprocessingml') ||
+                      documentType.toLowerCase().includes('spreadsheetml') ||
+                      documentType.toLowerCase().includes('word') ||
+                      documentType.toLowerCase().includes('excel') ||
+                      documentType.toLowerCase().includes('docx') ||
+                      documentType.toLowerCase().includes('xlsx') ||
+                      documentType.toLowerCase().includes('pptx');
+  
+  const isPreviewable = isPdf || isImage || isOfficeDoc;
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
@@ -74,14 +93,31 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
                 onClick={onClose}
                 className="h-8 w-8 p-0"
               >
-                <X className="h-4 w-4" />
+                {/* <X className="h-4 w-4" /> */}
               </Button>
             </div>
           </div>
         </DialogHeader>
         
         <div className="flex-1 overflow-hidden">
-          {isPdf ? (
+          {!isPreviewable ? (
+            // Non-previewable files (DOCX, etc.) - show download option
+            <div className="flex items-center justify-center h-[70vh] border rounded-lg">
+              <div className="text-center">
+                <div className="text-blue-600 mb-4">
+                  <svg className="w-16 h-16 mx-auto" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <p className="text-gray-700 mb-2 font-semibold">Document ready to download</p>
+                <p className="text-gray-500 text-sm mb-4">This file type cannot be previewed in browser</p>
+                <Button onClick={handleDownload} variant="default" className="bg-red-600 hover:bg-red-700">
+                  <Download className="h-4 w-4 mr-2" />
+                  Download File
+                </Button>
+              </div>
+            </div>
+          ) : isPdf ? (
             <div className="w-full h-[70vh] border rounded-lg overflow-hidden">
               {isLoading && (
                 <div className="flex items-center justify-center h-full">
@@ -121,16 +157,30 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
             </div>
           ) : (
             <div className="w-full h-[70vh] border rounded-lg overflow-hidden">
-              <img
-                src={documentUrl}
-                alt={`${documentType} Document`}
-                className="w-full h-full object-contain"
-                onLoad={() => setIsLoading(false)}
-                onError={() => {
-                  setError('Unable to load image');
-                  setIsLoading(false);
-                }}
-              />
+              {isImage ? (
+                <img
+                  src={documentUrl}
+                  alt={`${documentType} Document`}
+                  className="w-full h-full object-contain"
+                  onLoad={() => setIsLoading(false)}
+                  onError={() => {
+                    setError('Unable to load image');
+                    setIsLoading(false);
+                  }}
+                />
+              ) : isOfficeDoc ? (
+                // Use Office Online Viewer for DOCX, XLSX, etc.
+                <iframe
+                  src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(documentUrl)}`}
+                  className="w-full h-full"
+                  onLoad={() => setIsLoading(false)}
+                  onError={() => {
+                    setError('Unable to preview Office document');
+                    setIsLoading(false);
+                  }}
+                  title={`${documentType} Document Preview`}
+                />
+              ) : null}
             </div>
           )}
         </div>

@@ -29,7 +29,7 @@ export function VehicleDetails({ vehicle, onVehicleUpdate }: VehicleDetailsProps
   };
 
   const formatDate = (date: Date | undefined) => {
-    if (!date) return 'N/A';
+    if (!date) return '--';
     return new Date(date).toLocaleDateString();
   };
 
@@ -62,19 +62,19 @@ export function VehicleDetails({ vehicle, onVehicleUpdate }: VehicleDetailsProps
           <div>
             <Label className="text-gray-600">Make</Label>
             <p className="text-lg font-semibold">
-              {currentVehicle.make || 'N/A'}
+              {currentVehicle.make || '--'}
             </p>
           </div>
           <div>
             <Label className="text-gray-600">Company Name</Label>
             <p className="text-lg font-semibold">
-              {currentVehicle.companyName || 'N/A'}
+              {currentVehicle.companyName || '--'}
             </p>
           </div>
           <div>
             <Label className="text-gray-600">Fuel Type</Label>
             <p className="text-lg font-semibold">
-              {currentVehicle.fuelType || 'N/A'}
+              {currentVehicle.fuelType || '--'}
             </p>
           </div>
           <div>
@@ -95,25 +95,25 @@ export function VehicleDetails({ vehicle, onVehicleUpdate }: VehicleDetailsProps
           <div>
             <Label className="text-gray-600">Year</Label>
             <p className="text-lg font-semibold">
-              {currentVehicle.year || 'N/A'}
+              {currentVehicle.year || '--'}
             </p>
           </div>
           <div>
             <Label className="text-gray-600">Color</Label>
             <p className="text-lg font-semibold">
-              {currentVehicle.color || 'N/A'}
+              {currentVehicle.color || '--'}
             </p>
           </div>
           <div>
             <Label className="text-gray-600">Seating Capacity</Label>
             <p className="text-lg font-semibold">
-              {currentVehicle.seatingCapacity || 'N/A'}
+              {currentVehicle.seatingCapacity || '--'}
             </p>
           </div>
           <div>
             <Label className="text-gray-600">Cargo Length</Label>
             <p className="text-lg font-semibold">
-              {currentVehicle.cargoLength || 'N/A'}
+              {currentVehicle.cargoLength || '--'}
             </p>
           </div>
         </div>
@@ -126,25 +126,25 @@ export function VehicleDetails({ vehicle, onVehicleUpdate }: VehicleDetailsProps
           <div>
             <Label className="text-gray-600">Engine Number</Label>
             <p className="text-lg font-semibold font-mono">
-              {currentVehicle.engineNumber || 'N/A'}
+              {currentVehicle.engineNumber || '--'}
             </p>
           </div>
           <div>
             <Label className="text-gray-600">Chassis Number</Label>
             <p className="text-lg font-semibold font-mono">
-              {currentVehicle.chassisNumber || 'N/A'}
+              {currentVehicle.chassisNumber || '--'}
             </p>
           </div>
           <div>
             <Label className="text-gray-600">Vehicle Details</Label>
             <p className="text-lg font-semibold">
-              {currentVehicle.vehicleDetails || 'N/A'}
+              {currentVehicle.vehicleDetails || '--'}
             </p>
           </div>
           <div>
             <Label className="text-gray-600">AC Model</Label>
             <p className="text-lg font-semibold">
-              {currentVehicle.acModel || 'N/A'}
+              {currentVehicle.acModel || '--'}
             </p>
           </div>
         </div>
@@ -206,18 +206,32 @@ export function VehicleDetails({ vehicle, onVehicleUpdate }: VehicleDetailsProps
             insuranceDocument: currentVehicle.insuranceDocument,
             fitnessDocument: currentVehicle.fitnessDocument,
           }}
-          onDocumentChange={(documentType, url) => {
-            const updatedVehicle = { ...currentVehicle, [`${documentType}Document`]: url };
+          onDocumentChange={(documentType, documents) => {
+            const updatedVehicle = { ...currentVehicle, [`${documentType}Document`]: documents };
             setCurrentVehicle(updatedVehicle);
             if (onVehicleUpdate) {
               onVehicleUpdate(updatedVehicle);
             }
           }}
-          onDocumentRemove={(documentType) => {
-            const updatedVehicle = { ...currentVehicle, [`${documentType}Document`]: '' };
-            setCurrentVehicle(updatedVehicle);
-            if (onVehicleUpdate) {
-              onVehicleUpdate(updatedVehicle);
+          onDocumentRemove={(documentType, index) => {
+            if (index !== undefined) {
+              // Remove specific document by index
+              const currentDocs = Array.isArray(currentVehicle[`${documentType}Document` as keyof typeof currentVehicle]) 
+                ? currentVehicle[`${documentType}Document` as keyof typeof currentVehicle] as any[]
+                : [];
+              const updatedDocs = currentDocs.filter((_, i) => i !== index);
+              const updatedVehicle = { ...currentVehicle, [`${documentType}Document`]: updatedDocs };
+              setCurrentVehicle(updatedVehicle);
+              if (onVehicleUpdate) {
+                onVehicleUpdate(updatedVehicle);
+              }
+            } else {
+              // Remove all documents of this type
+              const updatedVehicle = { ...currentVehicle, [`${documentType}Document`]: [] };
+              setCurrentVehicle(updatedVehicle);
+              if (onVehicleUpdate) {
+                onVehicleUpdate(updatedVehicle);
+              }
             }
           }}
           onDocumentsUpdate={(documents: any) => {
@@ -234,9 +248,11 @@ export function VehicleDetails({ vehicle, onVehicleUpdate }: VehicleDetailsProps
             <div>
               <Label className="text-gray-600">PUC Document</Label>
               <DocumentPreview
-                documentUrl={currentVehicle.pucDocument}
+                documents={Array.isArray(currentVehicle.pucDocument) ? currentVehicle.pucDocument : undefined}
+                documentUrl={typeof currentVehicle.pucDocument === 'string' ? currentVehicle.pucDocument : undefined}
                 documentType="PUC"
                 label="PUC Document"
+                imageFieldName="pucImage"
               />
             </div>
           )}
@@ -244,9 +260,11 @@ export function VehicleDetails({ vehicle, onVehicleUpdate }: VehicleDetailsProps
             <div>
               <Label className="text-gray-600">Insurance Document</Label>
               <DocumentPreview
-                documentUrl={currentVehicle.insuranceDocument}
+                documents={Array.isArray(currentVehicle.insuranceDocument) ? currentVehicle.insuranceDocument : undefined}
+                documentUrl={typeof currentVehicle.insuranceDocument === 'string' ? currentVehicle.insuranceDocument : undefined}
                 documentType="Insurance"
                 label="Insurance Document"
+                imageFieldName="insuranceImage"
               />
             </div>
           )}
@@ -254,9 +272,11 @@ export function VehicleDetails({ vehicle, onVehicleUpdate }: VehicleDetailsProps
             <div>
               <Label className="text-gray-600">Fitness Document</Label>
               <DocumentPreview
-                documentUrl={currentVehicle.fitnessDocument}
+                documents={Array.isArray(currentVehicle.fitnessDocument) ? currentVehicle.fitnessDocument : undefined}
+                documentUrl={typeof currentVehicle.fitnessDocument === 'string' ? currentVehicle.fitnessDocument : undefined}
                 documentType="Fitness"
                 label="Fitness Document"
+                imageFieldName="fitnessImage"
               />
             </div>
           )}
@@ -264,9 +284,11 @@ export function VehicleDetails({ vehicle, onVehicleUpdate }: VehicleDetailsProps
             <div>
               <Label className="text-gray-600">NP Document</Label>
               <DocumentPreview
-                documentUrl={currentVehicle.npDocument}
+                documents={Array.isArray(currentVehicle.npDocument) ? currentVehicle.npDocument : undefined}
+                documentUrl={typeof currentVehicle.npDocument === 'string' ? currentVehicle.npDocument : undefined}
                 documentType="NP"
                 label="NP Document"
+                imageFieldName="npImage"
               />
             </div>
           )}

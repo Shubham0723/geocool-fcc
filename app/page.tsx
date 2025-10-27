@@ -95,25 +95,32 @@ export default function DashboardPage() {
 
       if (operations && operations.length > 0) {
         const totalWithGST = operations.reduce(
-          (sum: number, op: any) => sum + Number(op.amount),
+          (sum: number, op: any) => sum + Number(op.totalInvAmountPayable || 0),
           0
         );
-        const totalWithoutGST = totalWithGST * 0.82; // Approximate without GST
+        // Calculate total without GST: sum of spare without tax + labour + original amount + outside labour
+        const totalWithoutGST = operations.reduce(
+          (sum: number, op: any) => {
+            return sum + Number(op.spareWithoutTax || 0) + Number(op.labour || 0) + 
+                   Number(op.amount || 0) + Number(op.outsideLabour || 0);
+          },
+          0
+        );
 
         setMaintenanceCost({
           withGST: totalWithGST,
           withoutGST: totalWithoutGST,
         });
 
-        const labourOps = operations.filter((op: any) =>
-          op.operationType.toLowerCase().includes('maintenance') || 
-          op.operationType.toLowerCase().includes('repair')
-        );
-        const labourWithGST = labourOps.reduce(
-          (sum: number, op: any) => sum + Number(op.amount),
+        // Calculate labour costs from all operations that have labour data
+        const labourWithGST = operations.reduce(
+          (sum: number, op: any) => sum + Number(op.labourWithGST || 0),
           0
         );
-        const labourWithoutGST = labourWithGST * 0.82;
+        const labourWithoutGST = operations.reduce(
+          (sum: number, op: any) => sum + Number(op.labour || 0),
+          0
+        );
 
         setLabourCost({
           withGST: labourWithGST,
@@ -123,24 +130,35 @@ export default function DashboardPage() {
         const monthlyData = operations.reduce((acc: any, op: any) => {
           const month = format(new Date(op.operationDate), 'MMM yyyy');
           if (!acc[month]) {
-            acc[month] = { month, cost: 0 };
+            acc[month] = { month, cost: 0, costWithoutGST: 0 };
           }
-          acc[month].cost += Number(op.amount);
+          acc[month].cost += Number(op.totalInvAmountPayable || 0);
+          // Calculate cost without GST: spare without tax + labour + original amount + outside labour
+          const costWithoutGST = Number(op.spareWithoutTax || 0) + Number(op.labour || 0) + 
+                                 Number(op.amount || 0) + Number(op.outsideLabour || 0);
+          acc[month].costWithoutGST += costWithoutGST;
           return acc;
         }, {});
 
-        setCostTrends(Object.values(monthlyData).slice(-6));
+        const costTrendArr = Object.values(monthlyData).sort((a, b) =>
+          new Date("01 " + (a as any).month).getTime() - new Date("01 " + (b as any).month).getTime()
+        );
+        setCostTrends(costTrendArr);
 
-        const monthlyLabour = labourOps.reduce((acc: any, op: any) => {
+        const monthlyLabour = operations.reduce((acc: any, op: any) => {
           const month = format(new Date(op.operationDate), 'MMM yyyy');
           if (!acc[month]) {
-            acc[month] = { month, labour: 0 };
+            acc[month] = { month, labour: 0, labourWithGST: 0 };
           }
-          acc[month].labour += Number(op.amount);
+          acc[month].labour += Number(op.labour || 0);
+          acc[month].labourWithGST += Number(op.labourWithGST || 0);
           return acc;
         }, {});
 
-        setLabourTrends(Object.values(monthlyLabour).slice(-6));
+        const labourTrendArr = Object.values(monthlyLabour).sort((a, b) =>
+          new Date("01 " + (a as any).month).getTime() - new Date("01 " + (b as any).month).getTime()
+        );
+        setLabourTrends(labourTrendArr);
       }
 
       // Fetch expired documents from verification API (excluding licenses)
@@ -304,7 +322,6 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-   
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="hover:shadow-lg transition-shadow">
@@ -323,10 +340,10 @@ export default function DashboardPage() {
                 <Legend />
                 <Line
                   type="monotone"
-                  dataKey="cost"
+                  dataKey={includeGST ? "cost" : "costWithoutGST"}
                   stroke="#dc2626"
                   strokeWidth={2}
-                  name="Cost (₹)"
+                  name={includeGST ? "Cost (₹)" : "Cost Without GST (₹)"}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -347,7 +364,11 @@ export default function DashboardPage() {
                 <YAxis />
                 <Tooltip />
                 <Legend />
-                <Bar dataKey="labour" fill="#dc2626" name="Labour (₹)" />
+                <Bar 
+                  dataKey={includeGST ? "labourWithGST" : "labour"} 
+                  fill="#dc2626" 
+                  name={includeGST ? "Labour (With GST)" : "Labour (Without GST)"} 
+                />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -496,7 +517,7 @@ export default function DashboardPage() {
                       className="border-b border-gray-100 hover:bg-orange-50 transition-colors"
                     >
                       <td className="py-3 px-4 text-orange-600 font-medium">
-                        {license.vehicleNumber || 'N/A'}
+                        {license.vehicleNumber || '--'}
                       </td>
                       <td className="py-3 px-4">
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">

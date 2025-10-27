@@ -6,17 +6,22 @@ import { Save } from 'lucide-react';
 import { DocumentUpload } from './DocumentUpload';
 import { useToast } from '@/hooks/use-toast';
 
+interface DocumentItem {
+  [key: string]: string | Date;
+  createAt: Date;
+}
+
 interface DocumentSectionProps {
   vehicleId?: string;
   vehicleNumber: string;
   documents: {
-    pucDocument?: string;
-    npDocument?: string;
-    insuranceDocument?: string;
-    fitnessDocument?: string;
+    pucDocument?: DocumentItem[] | string; // Support both array and legacy string format
+    npDocument?: DocumentItem[] | string;
+    insuranceDocument?: DocumentItem[] | string;
+    fitnessDocument?: DocumentItem[] | string;
   };
-  onDocumentChange: (documentType: string, url: string) => void;
-  onDocumentRemove: (documentType: string) => void;
+  onDocumentChange: (documentType: string, documents: DocumentItem[]) => void;
+  onDocumentRemove: (documentType: string, index?: number) => void;
   onDocumentsUpdate?: (documents: any) => void;
 }
 
@@ -29,41 +34,60 @@ export const DocumentSection: React.FC<DocumentSectionProps> = ({
   onDocumentsUpdate,
 }) => {
   const [documentPreviews, setDocumentPreviews] = useState<{
-    puc: string;
-    np: string;
-    insurance: string;
-    fitness: string;
+    puc: string[];
+    np: string[];
+    insurance: string[];
+    fitness: string[];
   }>({
-    puc: '',
-    np: '',
-    insurance: '',
-    fitness: '',
+    puc: [],
+    np: [],
+    insurance: [],
+    fitness: [],
   });
 
   const [updatedDocuments, setUpdatedDocuments] = useState(documents);
   const { toast } = useToast();
 
-  const handlePreviewChange = (documentType: string, previewUrl: string) => {
+  // Helper function to convert legacy string format to array format
+  const normalizeDocuments = (docs: DocumentItem[] | string | undefined): DocumentItem[] => {
+    if (!docs) return [];
+    if (typeof docs === 'string') return []; // Legacy format, return empty array
+    return docs;
+  };
+
+  const handlePreviewChange = (documentType: string, previewUrls: string[]) => {
     setDocumentPreviews(prev => ({
       ...prev,
-      [documentType]: previewUrl,
+      [documentType]: previewUrls,
     }));
   };
 
-  const handleDocumentChange = (documentType: string, url: string) => {
+  const handleDocumentChange = (documentType: string, documents: DocumentItem[]) => {
     setUpdatedDocuments(prev => ({
       ...prev,
-      [`${documentType}Document`]: url
+      [`${documentType}Document`]: documents
     }));
-    onDocumentChange(documentType, url);
+    onDocumentChange(documentType, documents);
   };
 
-  const handleDocumentRemove = (documentType: string) => {
-    setUpdatedDocuments(prev => ({
-      ...prev,
-      [`${documentType}Document`]: ''
-    }));
-    onDocumentRemove(documentType);
+  const handleDocumentRemove = (documentType: string, index?: number) => {
+    if (index !== undefined) {
+      // Remove specific document by index
+      const currentDocs = normalizeDocuments(updatedDocuments[`${documentType}Document` as keyof typeof updatedDocuments] as DocumentItem[]);
+      const updatedDocs = currentDocs.filter((_, i) => i !== index);
+      setUpdatedDocuments(prev => ({
+        ...prev,
+        [`${documentType}Document`]: updatedDocs
+      }));
+      onDocumentChange(documentType, updatedDocs);
+    } else {
+      // Remove all documents of this type
+      setUpdatedDocuments(prev => ({
+        ...prev,
+        [`${documentType}Document`]: []
+      }));
+      onDocumentChange(documentType, []);
+    }
   };
 
   const handleSaveDocuments = async () => {
@@ -127,10 +151,10 @@ export const DocumentSection: React.FC<DocumentSectionProps> = ({
           label="PUC Document"
           documentType="puc"
           vehicleNumber={vehicleNumber}
-          currentDocument={updatedDocuments.pucDocument}
+          currentDocuments={normalizeDocuments(updatedDocuments.pucDocument)}
           onDocumentChange={handleDocumentChange}
           onDocumentRemove={handleDocumentRemove}
-          previewUrl={documentPreviews.puc}
+          previewUrls={documentPreviews.puc}
           onPreviewChange={handlePreviewChange}
         />
         
@@ -138,10 +162,10 @@ export const DocumentSection: React.FC<DocumentSectionProps> = ({
           label="NP Document"
           documentType="np"
           vehicleNumber={vehicleNumber}
-          currentDocument={updatedDocuments.npDocument}
+          currentDocuments={normalizeDocuments(updatedDocuments.npDocument)}
           onDocumentChange={handleDocumentChange}
           onDocumentRemove={handleDocumentRemove}
-          previewUrl={documentPreviews.np}
+          previewUrls={documentPreviews.np}
           onPreviewChange={handlePreviewChange}
         />
         
@@ -149,10 +173,10 @@ export const DocumentSection: React.FC<DocumentSectionProps> = ({
           label="Insurance Document"
           documentType="insurance"
           vehicleNumber={vehicleNumber}
-          currentDocument={updatedDocuments.insuranceDocument}
+          currentDocuments={normalizeDocuments(updatedDocuments.insuranceDocument)}
           onDocumentChange={handleDocumentChange}
           onDocumentRemove={handleDocumentRemove}
-          previewUrl={documentPreviews.insurance}
+          previewUrls={documentPreviews.insurance}
           onPreviewChange={handlePreviewChange}
         />
         
@@ -160,10 +184,10 @@ export const DocumentSection: React.FC<DocumentSectionProps> = ({
           label="Fitness Document"
           documentType="fitness"
           vehicleNumber={vehicleNumber}
-          currentDocument={updatedDocuments.fitnessDocument}
+          currentDocuments={normalizeDocuments(updatedDocuments.fitnessDocument)}
           onDocumentChange={handleDocumentChange}
           onDocumentRemove={handleDocumentRemove}
-          previewUrl={documentPreviews.fitness}
+          previewUrls={documentPreviews.fitness}
           onPreviewChange={handlePreviewChange}
         />
       </div>

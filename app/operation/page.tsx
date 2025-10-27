@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,13 +30,7 @@ import { cn } from '@/lib/utils';
 import { type Vehicle, type Operation } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
-
-const expenseTypes = [
-  { label: 'Vehicle Service', value: 'vehicle_service' },
-  { label: 'Running Repairs', value: 'running_repairs' },
-  { label: 'Running Repair Parts', value: 'running_repair_parts' },
-  { label: 'AC Service', value: 'ac_service' },
-];
+import { DocumentPreview } from '@/components/DocumentPreview';
 
 export default function OperationPage() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -47,14 +41,53 @@ export default function OperationPage() {
   const [filteredVehicles, setFilteredVehicles] = useState<Vehicle[]>([]);
   const { toast } = useToast();
 
+  const [formType, setFormType] = useState<'ac-maintenance' | 'vehicle-maintenance' | ''>('');
   const [operationData, setOperationData] = useState({
     operationType: '',
     amount: '',
     description: '',
+    // AC Maintenance specific fields
+    acUnit: '',
+    dateSendToWS: '',
+    engineHrs: '',
+    workshop: '',
+    advisorNo: '',
+    complaints: '',
+    actionTaken: '',
+    vehReadyDateFromWS: '',
+    invoiceNo: '',
+    invoiceDate: '',
+    // Vehicle Maintenance specific fields
+    serviceKM: '',
+    workOrderNo: '',
+    // Common new fields for both forms
+    spare: '',
+    spareWithoutTax: '',
+    labour: '',
+    outsideLabour: '',
+    discountOnParts: '',
+    gstOnParts: '',
+    gstOnPartsCustom1: '', // new
+    gstOnPartsCustom2: '', // new
+    discountLabour: '',
+    gstOnLabour: '',
+    gstOnLabourCustom1: '', // new
+    gstOnLabourCustom2: '', // new
+    totalInvAmountPayable: '',
+    totalAmountWithDiscountButWithoutTax: '',
+    remark: '',
+    jobType: '',
   });
+  // New state for dynamic types
+  const [operationTypes, setOperationTypes] = useState<{_id: string, Type_name: string}[]>([]);
+  const [typeInput, setTypeInput] = useState('');
+  const [addingType, setAddingType] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
+  const [fileUrlPreview, setFileUrlPreview] = useState<string | null>(null);
 
   useEffect(() => {
     fetchVehicles();
+    fetchOperationTypes();
   }, []);
 
   useEffect(() => {
@@ -82,9 +115,9 @@ export default function OperationPage() {
       const data = await response.json();
       
       if (response.ok) {
-        const activeVehicles = (data || []).filter((vehicle: Vehicle) => vehicle.status === 'active');
-        setVehicles(activeVehicles);
-        setFilteredVehicles(activeVehicles);
+        // Show all vehicles, not just active ones
+        setVehicles(data || []);
+        setFilteredVehicles(data || []);
       } else {
         toast({
           title: 'Error',
@@ -129,6 +162,40 @@ export default function OperationPage() {
     }
   };
 
+  const fetchOperationTypes = async () => {
+    try {
+      const res = await fetch('/api/maintenance_type');
+      const data = await res.json();
+      setOperationTypes(Array.isArray(data) ? data : []);
+    } catch (e) {
+      setOperationTypes([]);
+    }
+  };
+
+  const handleAddOperationType = async () => {
+    if (!typeInput) return;
+    setAddingType(true);
+    try {
+      const res = await fetch('/api/maintenance_type', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ Type_name: typeInput }),
+      });
+      const result = await res.json();
+      if (res.ok && result.success) {
+        setTypeInput('');
+        toast({ title: 'Success', description: 'Type Added' });
+        await fetchOperationTypes();
+        setOperationData(d => ({ ...d, operationType: result.Type_name }));
+      } else {
+        toast({ title: 'Error', description: result.error || 'Failed to add type', variant: 'destructive'});
+      }
+    } catch (e) {
+      toast({ title: 'Error', description: 'Failed to add type', variant: 'destructive' });
+    }
+    setAddingType(false);
+  };
+
   const calculateGST = (amount: number) => {
     const gstRate = 0.18;
     const withoutGST = amount / (1 + gstRate);
@@ -137,6 +204,67 @@ export default function OperationPage() {
       withGST: amount,
       withoutGST: withoutGST,
       gstAmount: gstAmount,
+    };
+  };
+
+  const calculateTotalAmounts = () => {
+    const originalAmount = parseFloat(operationData.amount) || 0;
+    const spareWithoutTax = parseFloat(operationData.spareWithoutTax) || 0;
+    const labour = parseFloat(operationData.labour) || 0;
+    const outsideLabour = parseFloat(operationData.outsideLabour) || 0;
+    const discountLabour = parseFloat(operationData.discountLabour) || 0;
+    
+    // Get percentage values
+    const spareRate = operationData.spare === '18%' ? 0.18 : operationData.spare === '28%' ? 0.28 : 0;
+    const discountOnPartsRate = operationData.discountOnParts === '18%' ? 0.18 : operationData.discountOnParts === '28%' ? 0.28 : 0;
+    const customGstOnParts1 = parseFloat(operationData.gstOnPartsCustom1) || 0;
+    const customGstOnParts2 = parseFloat(operationData.gstOnPartsCustom2) || 0;
+    const gstOnPartsRate = (customGstOnParts1 || customGstOnParts2) ? (customGstOnParts1 + customGstOnParts2) / 100 : (operationData.gstOnParts === '18%' ? 0.18 : operationData.gstOnParts === '28%' ? 0.28 : 0);
+    const customGstOnLabour1 = parseFloat(operationData.gstOnLabourCustom1) || 0;
+    const customGstOnLabour2 = parseFloat(operationData.gstOnLabourCustom2) || 0;
+    const gstOnLabourRate = (customGstOnLabour1 || customGstOnLabour2) ? (customGstOnLabour1 + customGstOnLabour2) / 100 : (operationData.gstOnLabour === '18%' ? 0.18 : operationData.gstOnLabour === '28%' ? 0.28 : 0);
+
+    // Calculate spare: First apply discount, then add GST on discounted amount
+    const spareDiscountAmount = spareWithoutTax * discountOnPartsRate;
+    const spareAfterDiscount = spareWithoutTax - spareDiscountAmount;
+    const spareGSTAmount = spareAfterDiscount * gstOnPartsRate;
+    const spareWithGST = spareAfterDiscount + spareGSTAmount;
+    
+    // Calculate labour: First apply discount (as %), then add GST on discounted amount
+    const labourDiscountAmount = labour * (discountLabour / 100);
+    const labourAfterDiscount = labour - labourDiscountAmount;
+    const labourGSTAmount = labourAfterDiscount * gstOnLabourRate;
+    const labourWithGST = labourAfterDiscount + labourGSTAmount;
+    
+    // Outside labour (no GST applied)
+    const outsideLabourWithGST = outsideLabour;
+    
+    // Calculate totals
+    const totalWithGST = originalAmount + spareWithGST + labourWithGST + outsideLabourWithGST;
+    const totalWithoutGST = originalAmount + spareWithoutTax + labour + outsideLabour;
+    const totalDiscountAmount = spareDiscountAmount + discountLabour;
+    
+    // Total Inv Amount Payable = all amounts with GST
+    const totalInvAmountPayable = totalWithGST;
+    
+    // Total Amount with Discount but Without Tax = Spare After Discount + Labour After Discount
+    const totalAmountWithDiscountButWithoutTax = spareAfterDiscount + labourAfterDiscount;
+
+    return {
+      spareDiscountAmount: spareDiscountAmount.toFixed(2),
+      spareAfterDiscount: spareAfterDiscount.toFixed(2),
+      spareGSTAmount: spareGSTAmount.toFixed(2),
+      spareWithGST: spareWithGST.toFixed(2),
+      labourDiscountAmount: labourDiscountAmount.toFixed(2),
+      labourAfterDiscount: labourAfterDiscount.toFixed(2),
+      labourGSTAmount: labourGSTAmount.toFixed(2),
+      labourWithGST: labourWithGST.toFixed(2),
+      outsideLabourWithGST: outsideLabourWithGST.toFixed(2),
+      totalWithGST: totalWithGST.toFixed(2),
+      totalWithoutGST: totalWithoutGST.toFixed(2),
+      totalDiscountAmount: totalDiscountAmount.toFixed(2),
+      totalInvAmountPayable: totalInvAmountPayable.toFixed(2),
+      totalAmountWithDiscountButWithoutTax: totalAmountWithDiscountButWithoutTax.toFixed(2),
     };
   };
 
@@ -150,16 +278,35 @@ export default function OperationPage() {
       return;
     }
 
-    if (!operationData.operationType || !operationData.amount) {
+    if (!formType) {
       toast({
         title: 'Error',
-        description: 'Please fill in all required fields',
+        description: 'Please select a form type',
         variant: 'destructive',
       });
       return;
     }
 
+    // if (!operationData.operationType || !operationData.amount) {
+    //   toast({
+    //     title: 'Error',
+    //     description: 'Please fill in all required fields',
+    //     variant: 'destructive',
+    //   });
+    //   return;
+    // }
+
     const amount = parseFloat(operationData.amount);
+    let invoiceBillUrl = '';
+    if (file && selectedVehicle.vehicleNumber) {
+      const fileData = new FormData();
+      fileData.append('file', file);
+      fileData.append('documentType', 'invoiceBill');
+      fileData.append('vehicleNumber', selectedVehicle.vehicleNumber);
+      const uploadRes = await fetch('/api/upload', { method: 'POST', body: fileData });
+      const uploadJson = await uploadRes.json();
+      if (uploadJson && uploadJson.url) invoiceBillUrl = uploadJson.url;
+    }
 
     try {
       const response = await fetch('/api/operations', {
@@ -170,10 +317,39 @@ export default function OperationPage() {
         body: JSON.stringify({
           vehicleNumber: selectedVehicle.vehicleNumber,
           operationType: operationData.operationType,
-          amount: amount,
+          amount,
           description: operationData.description,
           operationDate: new Date(),
           status: 'pending',
+          invoiceBill: invoiceBillUrl || undefined,
+          formType: formType,
+          // All fields from the form
+          dateSendToWS: operationData.dateSendToWS,
+          workshop: operationData.workshop,
+          complaints: operationData.complaints,
+          actionTaken: operationData.actionTaken,
+          vehReadyDateFromWS: operationData.vehReadyDateFromWS,
+          invoiceNo: operationData.invoiceNo,
+          invoiceDate: operationData.invoiceDate,
+          // AC Maintenance fields
+          acUnit: operationData.acUnit,
+          engineHrs: operationData.engineHrs,
+          advisorNo: operationData.advisorNo,
+          // Vehicle Maintenance fields
+          serviceKM: operationData.serviceKM,
+          workOrderNo: operationData.workOrderNo,
+          // Financial fields
+          spare: operationData.spare,
+          spareWithoutTax: operationData.spareWithoutTax,
+          labour: operationData.labour,
+          outsideLabour: operationData.outsideLabour,
+          discountOnParts: operationData.discountOnParts,
+          gstOnParts: operationData.gstOnParts,
+          discountLabour: operationData.discountLabour,
+          gstOnLabour: operationData.gstOnLabour,
+          // Additional fields
+          remark: operationData.remark,
+          jobType: operationData.jobType,
         }),
       });
 
@@ -186,7 +362,37 @@ export default function OperationPage() {
           operationType: '',
           amount: '',
           description: '',
+          acUnit: '',
+          dateSendToWS: '',
+          engineHrs: '',
+          workshop: '',
+          advisorNo: '',
+          complaints: '',
+          actionTaken: '',
+          vehReadyDateFromWS: '',
+          invoiceNo: '',
+          invoiceDate: '',
+          serviceKM: '',
+          workOrderNo: '',
+          spare: '',
+          spareWithoutTax: '',
+          labour: '',
+          outsideLabour: '',
+          discountOnParts: '',
+          gstOnParts: '',
+          gstOnPartsCustom1: '', // new
+          gstOnPartsCustom2: '', // new
+          discountLabour: '',
+          gstOnLabour: '',
+          gstOnLabourCustom1: '', // new
+          gstOnLabourCustom2: '', // new
+          totalInvAmountPayable: '',
+          totalAmountWithDiscountButWithoutTax: '',
+          remark: '',
+          jobType: '',
         });
+        setFile(null); setFileUrlPreview(null);
+        setFormType('');
         fetchOperations(selectedVehicle._id?.toString() || '');
       } else {
         toast({
@@ -300,6 +506,90 @@ export default function OperationPage() {
         </CardContent>
       </Card>
 
+      {/* Vehicle List Table */}
+      <Card className="border-l-4 border-l-red-600">
+        <CardHeader>
+          <CardTitle>Vehicle List</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-400 transition-colors">
+            <table className="w-full min-w-[1200px]">
+              <thead>
+                <tr className="border-b border-gray-200 bg-gray-50">
+                  <th className="text-left py-3 px-2 font-semibold text-gray-700 min-w-[120px]">
+                    Vehicle Number
+                  </th>
+                  <th className="text-left py-3 px-2 font-semibold text-gray-700 min-w-[100px]">
+                    Model
+                  </th>
+                  <th className="text-left py-3 px-2 font-semibold text-gray-700 min-w-[100px]">
+                    Make
+                  </th>
+                  <th className="text-left py-3 px-2 font-semibold text-gray-700 min-w-[150px]">
+                    Company Name
+                  </th>
+                  <th className="text-left py-3 px-2 font-semibold text-gray-700 min-w-[100px]">
+                    Branch
+                  </th>
+                  <th className="text-left py-3 px-2 font-semibold text-gray-700 min-w-[80px]">
+                    Year
+                  </th>
+                  <th className="text-left py-3 px-2 font-semibold text-gray-700 min-w-[120px]">
+                    Chassis Number
+                  </th>
+                  <th className="text-left py-3 px-2 font-semibold text-gray-700 min-w-[100px]">
+                    AC Model
+                  </th>
+                  <th className="text-left py-3 px-2 font-semibold text-gray-700 min-w-[120px]">
+                    Registration Date
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {vehicles.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={9}
+                      className="text-center py-8 text-gray-500"
+                    >
+                      No vehicles found
+                    </td>
+                  </tr>
+                ) : (
+                  vehicles.map((vehicle) => (
+                    <tr
+                      key={vehicle._id?.toString() || Math.random()}
+                      className="border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer"
+                      onClick={() => {
+                        setSelectedVehicle(vehicle);
+                        setSearchTerm(vehicle.vehicleNumber);
+                      }}
+                    >
+                      <td className="py-3 px-2 text-red-600 font-medium">
+                        {vehicle.vehicleNumber}
+                      </td>
+                      <td className="py-3 px-2">{vehicle.model || '--'}</td>
+                      <td className="py-3 px-2">{vehicle.make || '--'}</td>
+                      <td className="py-3 px-2">{vehicle.companyName || '--'}</td>
+                      <td className="py-3 px-2">{vehicle.branch || '--'}</td>
+                      <td className="py-3 px-2">{vehicle.year || '--'}</td>
+                      <td className="py-3 px-2 text-xs">{vehicle.chassisNumber || '--'}</td>
+                      <td className="py-3 px-2">{vehicle.acModel || '--'}</td>
+                      <td className="py-3 px-2 text-xs">
+                        {vehicle.registrationDate
+                          ? new Date(vehicle.registrationDate).toLocaleDateString()
+                          : '--'
+                        }
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+
       {selectedVehicle && (
         <>
           <Card className="border-l-4 border-l-red-600">
@@ -307,73 +597,1128 @@ export default function OperationPage() {
               <CardTitle>Add Operation Details</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="operationType">Type of Operation</Label>
+              <div className="space-y-3">
+                {/* Form Type Selection */}
+                <div className="space-y-1">
+                  <Label htmlFor="formType" className="text-sm">Select Form Type</Label>
                   <Select
-                    value={operationData.operationType}
-                    onValueChange={(value) =>
-                      setOperationData({ ...operationData, operationType: value })
-                    }
+                    value={formType}
+                    onValueChange={(value: 'ac-maintenance' | 'vehicle-maintenance') => setFormType(value)}
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select operation type" />
+                    <SelectTrigger className="h-9 w-80">
+                      <SelectValue placeholder="Select form type" />
                     </SelectTrigger>
                     <SelectContent>
-                      {expenseTypes.map((type) => (
-                        <SelectItem key={type.value} value={type.value}>
-                          {type.label}
-                        </SelectItem>
-                      ))}
+                      <SelectItem value="ac-maintenance">AC Maintenance</SelectItem>
+                      <SelectItem value="vehicle-maintenance">Vehicle Maintenance</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="amount">Amount (₹)</Label>
-                  <Input
-                    id="amount"
-                    type="number"
-                    placeholder="Enter amount"
-                    value={operationData.amount}
-                    onChange={(e) =>
-                      setOperationData({
-                        ...operationData,
-                        amount: e.target.value,
-                      })
-                    }
-                  />
-                  {operationData.amount && (
-                    <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded">
-                      <p>
-                        Amount: ₹{parseFloat(operationData.amount).toFixed(2)}
-                      </p>
+                {/* Show form only when form type is selected */}
+                {formType && (
+                  <div className="space-y-8">
+                    {/* Type of Operation */}
+                    <div className="space-y-3">
+                      <Label htmlFor="operationType" className="text-sm font-medium">Type of Operation</Label>
+                      <div className="space-y-3">
+                        <Select
+                          value={operationData.operationType}
+                          onValueChange={value => setOperationData({ ...operationData, operationType: value })}
+                        >
+                          <SelectTrigger className="h-10 w-80">
+                            <SelectValue placeholder="Select operation type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {operationTypes.map(type => (
+                              <SelectItem key={type._id} value={type.Type_name}>
+                                {type.Type_name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <div className="flex items-center gap-4">
+                          <Input
+                            value={typeInput}
+                            onChange={e => setTypeInput(e.target.value)}
+                            placeholder="Add new type..."
+                            className="h-10 w-64"
+                            onKeyDown={e => { if (e.key === 'Enter') handleAddOperationType(); }}
+                            disabled={addingType}
+                          />
+                          <Button
+                            onClick={handleAddOperationType}
+                            disabled={addingType || !typeInput}
+                            className="bg-gray-200 text-sm text-gray-800 hover:bg-gray-300 h-10 px-4"
+                            type="button"
+                          >
+                            Add
+                          </Button>
+                        </div>
+                      </div>
                     </div>
-                  )}
-                </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="description">Description (Optional)</Label>
-                  <Textarea
-                    id="description"
-                    placeholder="Enter operation details..."
-                    value={operationData.description}
-                    onChange={(e) =>
-                      setOperationData({
-                        ...operationData,
-                        description: e.target.value,
-                      })
-                    }
-                    rows={3}
-                  />
-                </div>
+                    {/* AC Maintenance Specific Fields */}
+                    {formType === 'ac-maintenance' && (
+                      <>
+                        {/* AC Unit and Advisor No */}
+                        <div className="flex gap-8">
+                          <div className="space-y-3">
+                            <Label htmlFor="acUnit" className="text-sm font-medium">AC Unit</Label>
+                            <Input
+                              id="acUnit"
+                              placeholder="Enter AC unit details"
+                              value={operationData.acUnit}
+                              onChange={e => setOperationData({ ...operationData, acUnit: e.target.value })}
+                              className="h-10 w-80"
+                            />
+                          </div>
+                          <div className="space-y-3">
+                            <Label htmlFor="advisorNo" className="text-sm font-medium">Advisor No</Label>
+                            <Input
+                              id="advisorNo"
+                              placeholder="Enter advisor number"
+                              value={operationData.advisorNo}
+                              onChange={e => setOperationData({ ...operationData, advisorNo: e.target.value })}
+                              className="h-10 w-64"
+                            />
+                          </div>
+                        </div>
 
-                <Button
-                  onClick={handleSubmit}
-                  className="w-full bg-red-600 hover:bg-red-700"
-                >
-                  Submit Operation
-                </Button>
+                        {/* Date Send to W/S and Veh Ready Date from W/S */}
+                        <div className="flex gap-8">
+                          <div className="space-y-3">
+                            <Label htmlFor="dateSendToWS" className="text-sm font-medium">Date Send to W/S</Label>
+                            <Input
+                              id="dateSendToWS"
+                              type="date"
+                              value={operationData.dateSendToWS}
+                              onChange={(e) => setOperationData({ ...operationData, dateSendToWS: e.target.value })}
+                              className="h-10 w-64"
+                            />
+                          </div>
+                          <div className="space-y-3">
+                            <Label htmlFor="vehReadyDateFromWS" className="text-sm font-medium">Veh Ready Date from W/S</Label>
+                            <Input
+                              id="vehReadyDateFromWS"
+                              type="date"
+                              value={operationData.vehReadyDateFromWS}
+                              onChange={e => setOperationData({ ...operationData, vehReadyDateFromWS: e.target.value})}
+                              className="h-10 w-64"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Workshop and Job Type */}
+                        <div className="flex gap-8">
+                          <div className="space-y-3">
+                            <Label htmlFor="workshop" className="text-sm font-medium">Workshop</Label>
+                            <Input
+                              id="workshop"
+                              placeholder="Enter workshop name"
+                              value={operationData.workshop}
+                              onChange={(e) =>
+                                setOperationData({
+                                  ...operationData,
+                                  workshop: e.target.value,
+                                })
+                              }
+                              className="h-10 w-64"
+                            />
+                          </div>
+
+                          <div className="space-y-3">
+                            <Label htmlFor="jobType" className="text-sm font-medium">Job Type</Label>
+                            <Select
+                              value={operationData.jobType}
+                              onValueChange={(value) =>
+                                setOperationData({
+                                  ...operationData,
+                                  jobType: value,
+                                })
+                              }
+                            >
+                              <SelectTrigger className="h-10 w-64">
+                                <SelectValue placeholder="Select job type" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Warranty Job">Warranty Job</SelectItem>
+                                <SelectItem value="Paid Service">Paid Service</SelectItem>
+                                <SelectItem value="Paid Job">Paid Job</SelectItem>
+                                <SelectItem value="FOC">FOC</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+
+                        {/* Complaints and Action Taken */}
+                        <div className="flex gap-8">
+                          <div className="space-y-3">
+                            <Label htmlFor="complaints" className="text-sm font-medium">Complaint</Label>
+                            <Textarea
+                              id="complaints"
+                              placeholder="Enter complaints details"
+                              value={operationData.complaints}
+                              onChange={e => setOperationData({ ...operationData, complaints: e.target.value })}
+                              rows={3}
+                              className="resize-none w-96"
+                            />
+                          </div>
+                          <div className="space-y-3">
+                            <Label htmlFor="actionTaken" className="text-sm font-medium">Action Taken</Label>
+                            <Textarea
+                              id="actionTaken"
+                              placeholder="Enter action taken details"
+                              value={operationData.actionTaken}
+                              onChange={e => setOperationData({ ...operationData, actionTaken: e.target.value })}
+                              rows={3}
+                              className="resize-none w-96"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Invoice Date and Invoice No */}
+                        <div className="flex gap-8">
+                          <div className="space-y-3">
+                            <Label htmlFor="invoiceDate" className="text-sm font-medium">Invoice Date</Label>
+                            <Input
+                              id="invoiceDate"
+                              type="date"
+                              value={operationData.invoiceDate}
+                              onChange={e => setOperationData({ ...operationData, invoiceDate: e.target.value })}
+                              className="h-10 w-64"
+                            />
+                          </div>
+                          <div className="space-y-3">
+                            <Label htmlFor="invoiceNo" className="text-sm font-medium">Invoice No.</Label>
+                            <Input
+                              id="invoiceNo"
+                              placeholder="Enter invoice number"
+                              value={operationData.invoiceNo}
+                              onChange={e => setOperationData({ ...operationData, invoiceNo: e.target.value})}
+                              className="h-10 w-64"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Additional Details Section */}
+                        <div className="border-t pt-8 mt-8">
+                          <h4 className="text-xl font-semibold mb-8">Additional Details</h4>
+                          
+                          {/* Spare and Spare Without Tax */}
+                          <div className="flex gap-8 mb-8">
+                            <div className="space-y-3">
+                              <Label htmlFor="spare" className="text-sm font-medium">Spare</Label>
+                              <Select
+                                value={operationData.spare}
+                                onValueChange={(value) =>
+                                  setOperationData({
+                                    ...operationData,
+                                    spare: value,
+                                  })
+                                }
+                              >
+                                <SelectTrigger className="h-10 w-64">
+                                  <SelectValue placeholder="Select spare percentage" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="18%">18%</SelectItem>
+                                  <SelectItem value="28%">28%</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            <div className="space-y-3">
+                              <Label htmlFor="spareWithoutTax" className="text-sm font-medium">Spare Without Tax</Label>
+                              <Input
+                                id="spareWithoutTax"
+                                type="number"
+                                placeholder="Enter spare without tax amount"
+                                value={operationData.spareWithoutTax}
+                                onChange={(e) =>
+                                  setOperationData({
+                                    ...operationData,
+                                    spareWithoutTax: e.target.value,
+                                  })
+                                }
+                                className="h-10 w-64 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Labour and Outside Labour */}
+                          <div className="flex gap-8 mb-8">
+                            <div className="space-y-3">
+                              <Label htmlFor="labour" className="text-sm font-medium">Labour</Label>
+                              <Input
+                                id="labour"
+                                type="number"
+                                placeholder="Enter labour amount"
+                                value={operationData.labour}
+                                onChange={(e) =>
+                                  setOperationData({
+                                    ...operationData,
+                                    labour: e.target.value,
+                                  })
+                                }
+                                className="h-10 w-64 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
+                              />
+                            </div>
+
+                            <div className="space-y-3">
+                              <Label htmlFor="outsideLabour" className="text-sm font-medium">Outside Labour</Label>
+                              <Input
+                                id="outsideLabour"
+                                type="number"
+                                placeholder="Enter outside labour amount"
+                                value={operationData.outsideLabour}
+                                onChange={(e) =>
+                                  setOperationData({
+                                    ...operationData,
+                                    outsideLabour: e.target.value,
+                                  })
+                                }
+                                className="h-10 w-64 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Discount on Parts and GST on Parts */}
+                          <div className="flex gap-12 mb-8">
+                            <div className="space-y-3">
+                              <Label htmlFor="discountOnParts" className="text-sm font-medium">Discount on Parts</Label>
+                              <Select
+                                value={operationData.discountOnParts}
+                                onValueChange={(value) =>
+                                  setOperationData({
+                                    ...operationData,
+                                    discountOnParts: value,
+                                  })
+                                }
+                              >
+                                <SelectTrigger className="h-10 w-64">
+                                  <SelectValue placeholder="Select discount percentage" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="18%">18%</SelectItem>
+                                  <SelectItem value="28%">28%</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            <div className="space-y-3">
+                              <Label htmlFor="gstOnParts" className="text-sm font-medium">GST on Parts</Label>
+                              <Select
+                                value={operationData.gstOnParts}
+                                onValueChange={(value) =>
+                                  setOperationData({
+                                    ...operationData,
+                                    gstOnParts: value,
+                                  })
+                                }
+                              >
+                                <SelectTrigger className="h-10 w-64">
+                                  <SelectValue placeholder="Select GST percentage" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="18%">18%</SelectItem>
+                                  <SelectItem value="28%">28%</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              {operationData.gstOnParts && (
+                                <div className="flex items-center gap-2 mt-2">
+                                  <Input
+                                    type="number"
+                                    placeholder="Custom % 1"
+                                    className="h-8 w-20 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
+                                    value={operationData.gstOnPartsCustom1}
+                                    onChange={e => setOperationData({ ...operationData, gstOnPartsCustom1: e.target.value })}
+                                  />
+                                  <Input
+                                    type="number"
+                                    placeholder="Custom % 2"
+                                    className="h-8 w-20 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
+                                    value={operationData.gstOnPartsCustom2}
+                                    onChange={e => setOperationData({ ...operationData, gstOnPartsCustom2: e.target.value })}
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Discount Labour and GST on Labour */}
+                          <div className="flex gap-12 mb-8">
+                            <div className="space-y-3">
+                              <Label htmlFor="discountLabour" className="text-sm font-medium">Discount Labour (%)</Label>
+                              <Input
+                                id="discountLabour"
+                                type="number"
+                                placeholder="Enter discount labour percentage"
+                                value={operationData.discountLabour}
+                                onChange={(e) =>
+                                  setOperationData({
+                                    ...operationData,
+                                    discountLabour: e.target.value,
+                                  })
+                                }
+                                className="h-10 w-64 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
+                              />
+                            </div>
+
+                            <div className="space-y-3">
+                              <Label htmlFor="gstOnLabour" className="text-sm font-medium">GST on Labour</Label>
+                              <Select
+                                value={operationData.gstOnLabour}
+                                onValueChange={(value) =>
+                                  setOperationData({
+                                    ...operationData,
+                                    gstOnLabour: value,
+                                  })
+                                }
+                              >
+                                <SelectTrigger className="h-10 w-64">
+                                  <SelectValue placeholder="Select GST percentage" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="18%">18%</SelectItem>
+                                  <SelectItem value="28%">28%</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              {operationData.gstOnLabour && (
+                                <div className="flex items-center gap-2 mt-2">
+                                  <Input
+                                    type="number"
+                                    placeholder="Custom % 1"
+                                    className="h-8 w-20 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
+                                    value={operationData.gstOnLabourCustom1}
+                                    onChange={e => setOperationData({ ...operationData, gstOnLabourCustom1: e.target.value })}
+                                  />
+                                  <Input
+                                    type="number"
+                                    placeholder="Custom % 2"
+                                    className="h-8 w-20 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
+                                    value={operationData.gstOnLabourCustom2}
+                                    onChange={e => setOperationData({ ...operationData, gstOnLabourCustom2: e.target.value })}
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* GST Amounts Display */}
+                          {(operationData.spareWithoutTax || operationData.labour || operationData.outsideLabour) && (
+                            <div className="bg-blue-50 p-4 rounded-lg border">
+                              <h5 className="text-lg font-semibold mb-3 text-blue-800">GST Calculations</h5>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                {operationData.spareWithoutTax && operationData.discountOnParts && (
+                                  <div className="space-y-2">
+                                    <Label className="text-sm font-medium text-blue-700">Spare Discount Amount</Label>
+                                    <div className="text-lg font-semibold text-blue-900">₹{calculateTotalAmounts().spareDiscountAmount}</div>
+                                    <div className="text-sm text-blue-600">Spare After Discount: ₹{calculateTotalAmounts().spareAfterDiscount}</div>
+                                  </div>
+                                )}
+                                
+                                {operationData.spareWithoutTax && operationData.gstOnParts && (
+                                  <div className="space-y-2">
+                                    <Label className="text-sm font-medium text-blue-700">Spare GST Amount</Label>
+                                    <div className="text-lg font-semibold text-blue-900">₹{calculateTotalAmounts().spareGSTAmount}</div>
+                                    <div className="text-sm text-blue-600">Spare with GST: ₹{calculateTotalAmounts().spareWithGST}</div>
+                                  </div>
+                                )}
+                                
+                                {operationData.labour && operationData.discountLabour && (
+                                  <div className="space-y-2">
+                                    <Label className="text-sm font-medium text-blue-700">Labour Discount Amount</Label>
+                                    <div className="text-lg font-semibold text-blue-900">₹{calculateTotalAmounts().labourDiscountAmount}</div>
+                                    <div className="text-sm text-blue-600">Labour After Discount: ₹{calculateTotalAmounts().labourAfterDiscount}</div>
+                                  </div>
+                                )}
+                                
+                                {operationData.labour && operationData.gstOnLabour && (
+                                  <div className="space-y-2">
+                                    <Label className="text-sm font-medium text-blue-700">Labour GST Amount</Label>
+                                    <div className="text-lg font-semibold text-blue-900">₹{calculateTotalAmounts().labourGSTAmount}</div>
+                                    <div className="text-sm text-blue-600">Labour with GST: ₹{calculateTotalAmounts().labourWithGST}</div>
+                                  </div>
+                                )}
+                                
+                                {operationData.outsideLabour && (
+                                  <div className="space-y-2">
+                                    <Label className="text-sm font-medium text-blue-700">Outside Labour</Label>
+                                    <div className="text-lg font-semibold text-blue-900">₹{calculateTotalAmounts().outsideLabourWithGST}</div>
+                                    <div className="text-sm text-blue-600">(No GST applied)</div>
+                                  </div>
+                                )}
+                              </div>
+                              
+                              <div className="mt-4 pt-3 border-t border-blue-200">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                  <div className="space-y-1">
+                                    <Label className="text-sm font-medium text-blue-700">Total Without GST</Label>
+                                    <div className="text-lg font-semibold text-blue-900">₹{calculateTotalAmounts().totalWithoutGST}</div>
+                                  </div>
+                                  <div className="space-y-1">
+                                    <Label className="text-sm font-medium text-blue-700">Total With GST</Label>
+                                    <div className="text-lg font-semibold text-blue-900">₹{calculateTotalAmounts().totalWithGST}</div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Total Amount Fields */}
+                          <div className="flex gap-12 mb-8">
+                            <div className="space-y-3">
+                              <Label htmlFor="totalInvAmountPayable" className="text-sm font-medium">Total Inv Amount Payable</Label>
+                              <Input
+                                id="totalInvAmountPayable"
+                                type="text"
+                                placeholder="Calculated total"
+                                value={calculateTotalAmounts().totalInvAmountPayable}
+                                readOnly
+                                className="bg-gray-50 h-10 w-64"
+                              />
+                            </div>
+
+                            <div className="space-y-3">
+                              <Label htmlFor="totalAmountWithDiscountButWithoutTax" className="text-sm font-medium">Total Amount with Discount but Without Tax</Label>
+                              <Input
+                                id="totalAmountWithDiscountButWithoutTax"
+                                type="text"
+                                placeholder="Calculated total"
+                                value={calculateTotalAmounts().totalAmountWithDiscountButWithoutTax}
+                                readOnly
+                                className="bg-gray-50 h-10 w-64"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Remark and Description */}
+                          <div className="flex gap-8 mb-8">
+                            <div className="space-y-3">
+                              <Label htmlFor="remark" className="text-sm font-medium">Remark</Label>
+                              <Textarea
+                                id="remark"
+                                placeholder="Enter remarks"
+                                value={operationData.remark}
+                                onChange={(e) =>
+                                  setOperationData({
+                                    ...operationData,
+                                    remark: e.target.value,
+                                  })
+                                }
+                                rows={3}
+                                className="resize-none w-96"
+                              />
+                            </div>
+
+                            <div className="space-y-3">
+                              <Label htmlFor="description" className="text-sm font-medium">Description (Optional)</Label>
+                              <Textarea
+                                id="description"
+                                placeholder="Enter operation details..."
+                                value={operationData.description}
+                                onChange={(e) =>
+                                  setOperationData({
+                                    ...operationData,
+                                    description: e.target.value,
+                                  })
+                                }
+                                rows={3}
+                                className="resize-none w-96"
+                              />
+                            </div>
+                          </div>
+
+                        </div>
+                      </>
+                    )}
+
+                    {/* Vehicle Maintenance Specific Fields */}
+                    {formType === 'vehicle-maintenance' && (
+                      <>
+                        {/* Date Send to W/S and Service KM */}
+                        <div className="flex gap-8">
+                          <div className="space-y-3">
+                            <Label htmlFor="dateSendToWS" className="text-sm font-medium">Date Send to W/S</Label>
+                            <Input
+                              id="dateSendToWS"
+                              type="date"
+                              value={operationData.dateSendToWS}
+                              onChange={(e) =>
+                                setOperationData({
+                                  ...operationData,
+                                  dateSendToWS: e.target.value,
+                                })
+                              }
+                              className="h-10 w-64"
+                            />
+                          </div>
+
+                          <div className="space-y-3">
+                            <Label htmlFor="serviceKM" className="text-sm font-medium">Service KM</Label>
+                            <Input
+                              id="serviceKM"
+                              type="number"
+                              placeholder="Enter service KM"
+                              value={operationData.serviceKM}
+                              onChange={(e) =>
+                                setOperationData({
+                                  ...operationData,
+                                  serviceKM: e.target.value,
+                                })
+                              }
+                              className="h-10 w-64 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Workshop and Job Type */}
+                        <div className="flex gap-8">
+                          <div className="space-y-3">
+                            <Label htmlFor="workshop" className="text-sm font-medium">Workshop</Label>
+                            <Input
+                              id="workshop"
+                              placeholder="Enter workshop name"
+                              value={operationData.workshop}
+                              onChange={(e) =>
+                                setOperationData({
+                                  ...operationData,
+                                  workshop: e.target.value,
+                                })
+                              }
+                              className="h-10 w-64"
+                            />
+                          </div>
+
+                          <div className="space-y-3">
+                            <Label htmlFor="jobType" className="text-sm font-medium">Job Type</Label>
+                            <Select
+                              value={operationData.jobType}
+                              onValueChange={(value) =>
+                                setOperationData({
+                                  ...operationData,
+                                  jobType: value,
+                                })
+                              }
+                            >
+                              <SelectTrigger className="h-10 w-64">
+                                <SelectValue placeholder="Select job type" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Warranty Job">Warranty Job</SelectItem>
+                                <SelectItem value="Paid Service">Paid Service</SelectItem>
+                                <SelectItem value="Paid Job">Paid Job</SelectItem>
+                                <SelectItem value="FOC">FOC</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+
+                        {/* Complaints and Action Taken */}
+                        <div className="flex gap-8">
+                          <div className="space-y-3">
+                            <Label htmlFor="complaints" className="text-sm font-medium">Complaint</Label>
+                            <Textarea
+                              id="complaints"
+                              placeholder="Enter complaints details"
+                              value={operationData.complaints}
+                              onChange={(e) =>
+                                setOperationData({
+                                  ...operationData,
+                                  complaints: e.target.value,
+                                })
+                              }
+                              rows={3}
+                              className="resize-none w-96"
+                            />
+                          </div>
+
+                          <div className="space-y-3">
+                            <Label htmlFor="actionTaken" className="text-sm font-medium">Action Taken</Label>
+                            <Textarea
+                              id="actionTaken"
+                              placeholder="Enter action taken details"
+                              value={operationData.actionTaken}
+                              onChange={(e) =>
+                                setOperationData({
+                                  ...operationData,
+                                  actionTaken: e.target.value,
+                                })
+                              }
+                              rows={3}
+                              className="resize-none w-96"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Veh Ready Date from W/S and Work Order No */}
+                        <div className="flex gap-8">
+                          <div className="space-y-3">
+                            <Label htmlFor="vehReadyDateFromWS" className="text-sm font-medium">Veh Ready Date from W/S</Label>
+                            <Input
+                              id="vehReadyDateFromWS"
+                              type="date"
+                              value={operationData.vehReadyDateFromWS}
+                              onChange={(e) =>
+                                setOperationData({
+                                  ...operationData,
+                                  vehReadyDateFromWS: e.target.value,
+                                })
+                              }
+                              className="h-10 w-64"
+                            />
+                          </div>
+
+                          <div className="space-y-3">
+                            <Label htmlFor="workOrderNo" className="text-sm font-medium">Work Order No.</Label>
+                            <Input
+                              id="workOrderNo"
+                              placeholder="Enter work order number"
+                              value={operationData.workOrderNo}
+                              onChange={(e) =>
+                                setOperationData({
+                                  ...operationData,
+                                  workOrderNo: e.target.value,
+                                })
+                              }
+                              className="h-10 w-64"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Invoice No and Invoice Date */}
+                        <div className="flex gap-8">
+                          <div className="space-y-3">
+                            <Label htmlFor="invoiceNo" className="text-sm font-medium">Invoice No.</Label>
+                            <Input
+                              id="invoiceNo"
+                              placeholder="Enter invoice number"
+                              value={operationData.invoiceNo}
+                              onChange={(e) =>
+                                setOperationData({
+                                  ...operationData,
+                                  invoiceNo: e.target.value,
+                                })
+                              }
+                              className="h-10 w-64"
+                            />
+                          </div>
+
+                          <div className="space-y-3">
+                            <Label htmlFor="invoiceDate" className="text-sm font-medium">Invoice Date</Label>
+                            <Input
+                              id="invoiceDate"
+                              type="date"
+                              value={operationData.invoiceDate}
+                              onChange={(e) =>
+                                setOperationData({
+                                  ...operationData,
+                                  invoiceDate: e.target.value,
+                                })
+                              }
+                              className="h-10 w-64"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Additional Details Section */}
+                        <div className="border-t pt-8 mt-8">
+                          <h4 className="text-xl font-semibold mb-8">Additional Details</h4>
+                          
+                          {/* Spare and Spare Without Tax */}
+                          <div className="flex gap-8 mb-8">
+                            <div className="space-y-3">
+                              <Label htmlFor="spare" className="text-sm font-medium">Spare</Label>
+                              <Select
+                                value={operationData.spare}
+                                onValueChange={(value) =>
+                                  setOperationData({
+                                    ...operationData,
+                                    spare: value,
+                                  })
+                                }
+                              >
+                                <SelectTrigger className="h-10 w-64">
+                                  <SelectValue placeholder="Select spare percentage" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="18%">18%</SelectItem>
+                                  <SelectItem value="28%">28%</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            <div className="space-y-3">
+                              <Label htmlFor="spareWithoutTax" className="text-sm font-medium">Spare Without Tax</Label>
+                              <Input
+                                id="spareWithoutTax"
+                                type="number"
+                                placeholder="Enter spare without tax amount"
+                                value={operationData.spareWithoutTax}
+                                onChange={(e) =>
+                                  setOperationData({
+                                    ...operationData,
+                                    spareWithoutTax: e.target.value,
+                                  })
+                                }
+                                className="h-10 w-64 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Labour and Outside Labour */}
+                          <div className="flex gap-8 mb-8">
+                            <div className="space-y-3">
+                              <Label htmlFor="labour" className="text-sm font-medium">Labour</Label>
+                              <Input
+                                id="labour"
+                                type="number"
+                                placeholder="Enter labour amount"
+                                value={operationData.labour}
+                                onChange={(e) =>
+                                  setOperationData({
+                                    ...operationData,
+                                    labour: e.target.value,
+                                  })
+                                }
+                                className="h-10 w-64 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
+                              />
+                            </div>
+
+                            <div className="space-y-3">
+                              <Label htmlFor="outsideLabour" className="text-sm font-medium">Outside Labour</Label>
+                              <Input
+                                id="outsideLabour"
+                                type="number"
+                                placeholder="Enter outside labour amount"
+                                value={operationData.outsideLabour}
+                                onChange={(e) =>
+                                  setOperationData({
+                                    ...operationData,
+                                    outsideLabour: e.target.value,
+                                  })
+                                }
+                                className="h-10 w-64 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Discount on Parts and GST on Parts */}
+                          <div className="flex gap-12 mb-8">
+                            <div className="space-y-3">
+                              <Label htmlFor="discountOnParts" className="text-sm font-medium">Discount on Parts</Label>
+                              <Select
+                                value={operationData.discountOnParts}
+                                onValueChange={(value) =>
+                                  setOperationData({
+                                    ...operationData,
+                                    discountOnParts: value,
+                                  })
+                                }
+                              >
+                                <SelectTrigger className="h-10 w-64">
+                                  <SelectValue placeholder="Select discount percentage" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="18%">18%</SelectItem>
+                                  <SelectItem value="28%">28%</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            <div className="space-y-3">
+                              <Label htmlFor="gstOnParts" className="text-sm font-medium">GST on Parts</Label>
+                              <Select
+                                value={operationData.gstOnParts}
+                                onValueChange={(value) =>
+                                  setOperationData({
+                                    ...operationData,
+                                    gstOnParts: value,
+                                  })
+                                }
+                              >
+                                <SelectTrigger className="h-10 w-64">
+                                  <SelectValue placeholder="Select GST percentage" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="18%">18%</SelectItem>
+                                  <SelectItem value="28%">28%</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              {operationData.gstOnParts && (
+                                <div className="flex items-center gap-2 mt-2">
+                                  <Input
+                                    type="number"
+                                    placeholder="Custom % 1"
+                                    className="h-8 w-20 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
+                                    value={operationData.gstOnPartsCustom1}
+                                    onChange={e => setOperationData({ ...operationData, gstOnPartsCustom1: e.target.value })}
+                                  />
+                                  <Input
+                                    type="number"
+                                    placeholder="Custom % 2"
+                                    className="h-8 w-20 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
+                                    value={operationData.gstOnPartsCustom2}
+                                    onChange={e => setOperationData({ ...operationData, gstOnPartsCustom2: e.target.value })}
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Discount Labour and GST on Labour */}
+                          <div className="flex gap-12 mb-8">
+                            <div className="space-y-3">
+                              <Label htmlFor="discountLabour" className="text-sm font-medium">Discount Labour (%)</Label>
+                              <Input
+                                id="discountLabour"
+                                type="number"
+                                placeholder="Enter discount labour percentage"
+                                value={operationData.discountLabour}
+                                onChange={(e) =>
+                                  setOperationData({
+                                    ...operationData,
+                                    discountLabour: e.target.value,
+                                  })
+                                }
+                                className="h-10 w-64 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
+                              />
+                            </div>
+
+                            <div className="space-y-3">
+                              <Label htmlFor="gstOnLabour" className="text-sm font-medium">GST on Labour</Label>
+                              <Select
+                                value={operationData.gstOnLabour}
+                                onValueChange={(value) =>
+                                  setOperationData({
+                                    ...operationData,
+                                    gstOnLabour: value,
+                                  })
+                                }
+                              >
+                                <SelectTrigger className="h-10 w-64">
+                                  <SelectValue placeholder="Select GST percentage" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="18%">18%</SelectItem>
+                                  <SelectItem value="28%">28%</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              {operationData.gstOnLabour && (
+                                <div className="flex items-center gap-2 mt-2">
+                                  <Input
+                                    type="number"
+                                    placeholder="Custom % 1"
+                                    className="h-8 w-20 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
+                                    value={operationData.gstOnLabourCustom1}
+                                    onChange={e => setOperationData({ ...operationData, gstOnLabourCustom1: e.target.value })}
+                                  />
+                                  <Input
+                                    type="number"
+                                    placeholder="Custom % 2"
+                                    className="h-8 w-20 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
+                                    value={operationData.gstOnLabourCustom2}
+                                    onChange={e => setOperationData({ ...operationData, gstOnLabourCustom2: e.target.value })}
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* GST Amounts Display */}
+                          {(operationData.spareWithoutTax || operationData.labour || operationData.outsideLabour) && (
+                            <div className="bg-blue-50 p-4 rounded-lg border">
+                              <h5 className="text-lg font-semibold mb-3 text-blue-800">GST Calculations</h5>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                {operationData.spareWithoutTax && operationData.discountOnParts && (
+                                  <div className="space-y-2">
+                                    <Label className="text-sm font-medium text-blue-700">Spare Discount Amount</Label>
+                                    <div className="text-lg font-semibold text-blue-900">₹{calculateTotalAmounts().spareDiscountAmount}</div>
+                                    <div className="text-sm text-blue-600">Spare After Discount: ₹{calculateTotalAmounts().spareAfterDiscount}</div>
+                                  </div>
+                                )}
+                                
+                                {operationData.spareWithoutTax && operationData.gstOnParts && (
+                                  <div className="space-y-2">
+                                    <Label className="text-sm font-medium text-blue-700">Spare GST Amount</Label>
+                                    <div className="text-lg font-semibold text-blue-900">₹{calculateTotalAmounts().spareGSTAmount}</div>
+                                    <div className="text-sm text-blue-600">Spare with GST: ₹{calculateTotalAmounts().spareWithGST}</div>
+                                  </div>
+                                )}
+                                
+                                {operationData.labour && operationData.discountLabour && (
+                                  <div className="space-y-2">
+                                    <Label className="text-sm font-medium text-blue-700">Labour Discount Amount</Label>
+                                    <div className="text-lg font-semibold text-blue-900">₹{calculateTotalAmounts().labourDiscountAmount}</div>
+                                    <div className="text-sm text-blue-600">Labour After Discount: ₹{calculateTotalAmounts().labourAfterDiscount}</div>
+                                  </div>
+                                )}
+                                
+                                {operationData.labour && operationData.gstOnLabour && (
+                                  <div className="space-y-2">
+                                    <Label className="text-sm font-medium text-blue-700">Labour GST Amount</Label>
+                                    <div className="text-lg font-semibold text-blue-900">₹{calculateTotalAmounts().labourGSTAmount}</div>
+                                    <div className="text-sm text-blue-600">Labour with GST: ₹{calculateTotalAmounts().labourWithGST}</div>
+                                  </div>
+                                )}
+                                
+                                {operationData.outsideLabour && (
+                                  <div className="space-y-2">
+                                    <Label className="text-sm font-medium text-blue-700">Outside Labour</Label>
+                                    <div className="text-lg font-semibold text-blue-900">₹{calculateTotalAmounts().outsideLabourWithGST}</div>
+                                    <div className="text-sm text-blue-600">(No GST applied)</div>
+                                  </div>
+                                )}
+                              </div>
+                              
+                              <div className="mt-4 pt-3 border-t border-blue-200">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                  <div className="space-y-1">
+                                    <Label className="text-sm font-medium text-blue-700">Total Without GST</Label>
+                                    <div className="text-lg font-semibold text-blue-900">₹{calculateTotalAmounts().totalWithoutGST}</div>
+                                  </div>
+                                  <div className="space-y-1">
+                                    <Label className="text-sm font-medium text-blue-700">Total With GST</Label>
+                                    <div className="text-lg font-semibold text-blue-900">₹{calculateTotalAmounts().totalWithGST}</div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Total Amount Fields */}
+                          <div className="flex gap-12 mb-8">
+                            <div className="space-y-3">
+                              <Label htmlFor="totalInvAmountPayable" className="text-sm font-medium">Total Inv Amount Payable</Label>
+                              <Input
+                                id="totalInvAmountPayable"
+                                type="text"
+                                placeholder="Calculated total"
+                                value={calculateTotalAmounts().totalInvAmountPayable}
+                                readOnly
+                                className="bg-gray-50 h-10 w-64"
+                              />
+                            </div>
+
+                            <div className="space-y-3">
+                              <Label htmlFor="totalAmountWithDiscountButWithoutTax" className="text-sm font-medium">Total Amount with Discount but Without Tax</Label>
+                              <Input
+                                id="totalAmountWithDiscountButWithoutTax"
+                                type="text"
+                                placeholder="Calculated total"
+                                value={calculateTotalAmounts().totalAmountWithDiscountButWithoutTax}
+                                readOnly
+                                className="bg-gray-50 h-10 w-64"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Remark and Description */}
+                          <div className="flex gap-8 mb-8">
+                            <div className="space-y-3">
+                              <Label htmlFor="remark" className="text-sm font-medium">Remark</Label>
+                              <Textarea
+                                id="remark"
+                                placeholder="Enter remarks"
+                                value={operationData.remark}
+                                onChange={(e) =>
+                                  setOperationData({
+                                    ...operationData,
+                                    remark: e.target.value,
+                                  })
+                                }
+                                rows={3}
+                                className="resize-none w-96"
+                              />
+                            </div>
+
+                            <div className="space-y-3">
+                              <Label htmlFor="description" className="text-sm font-medium">Description (Optional)</Label>
+                              <Textarea
+                                id="description"
+                                placeholder="Enter operation details..."
+                                value={operationData.description}
+                                onChange={(e) =>
+                                  setOperationData({
+                                    ...operationData,
+                                    description: e.target.value,
+                                  })
+                                }
+                                rows={3}
+                                className="resize-none w-96"
+                              />
+                            </div>
+                          </div>
+
+                          {/* <div className="space-y-2">
+                            <Label htmlFor="jobType">Job Type</Label>
+                            <Select
+                              value={operationData.jobType}
+                              onValueChange={(value) =>
+                                setOperationData({
+                                  ...operationData,
+                                  jobType: value,
+                                })
+                              }
+                            >
+                              <SelectTrigger className="w-48">
+                                <SelectValue placeholder="Select job type" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Warranty Job">Warranty Job</SelectItem>
+                                <SelectItem value="Paid Service">Paid Service</SelectItem>
+                                <SelectItem value="Paid Job">Paid Job</SelectItem>
+                                <SelectItem value="FOC">FOC</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div> */}
+                        </div>
+                      </>
+                    )}
+
+                    {/* Common Fields */}
+                    <div className="space-y-8">
+                      {/* File Upload */}
+                      <div className="space-y-3">
+                        <Label htmlFor="invoice-bill" className="text-sm font-medium">Invoice Pic / Bill Upload</Label>
+                        <Input 
+                          type="file" 
+                          id="invoice-bill" 
+                          onChange={e => {
+                            if (e.target.files && e.target.files[0]) {
+                              setFile(e.target.files[0]);
+                              setFileUrlPreview(URL.createObjectURL(e.target.files[0]));
+                            } else {
+                              setFile(null);
+                              setFileUrlPreview(null);
+                            }
+                          }} 
+                          className="w-96" 
+                        />
+                        {file && fileUrlPreview && (
+                          <div className="mt-4">
+                            <DocumentPreview
+                              documentType={file.type || 'Document'}
+                              documentUrl={fileUrlPreview}
+                              label="Selected Invoice Bill Preview"
+                            />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Submit Button */}
+                      <div className="pt-4">
+                        <Button
+                          onClick={handleSubmit}
+                          className="w-96 h-12 bg-red-600 hover:bg-red-700 text-lg font-medium"
+                        >
+                          Submit Operation
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -417,10 +1762,12 @@ export default function OperationPage() {
                           </td>
                           <td className="py-3 px-4">{operation.operationType}</td>
                           <td className="py-3 px-4 font-semibold text-red-600">
-                            ₹{operation.amount.toLocaleString()}
+                            {typeof operation.totalInvAmountPayable === 'number' && !isNaN(operation.totalInvAmountPayable)
+                              ? `₹${operation.totalInvAmountPayable.toLocaleString()}`
+                              : '--'}
                           </td>
                           <td className="py-3 px-4 text-gray-600">
-                            {operation.description || '-'}
+                            {operation.description || '--'}
                           </td>
                         </tr>
                       ))}

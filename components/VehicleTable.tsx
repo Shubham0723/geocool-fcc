@@ -126,9 +126,9 @@ export function VehicleTable({ vehicles, onViewVehicle }: VehicleTableProps) {
                 <th className="text-left py-3 px-2 font-semibold text-gray-700 min-w-[120px] bg-red-100">
                   Remark
                 </th>
-                <th className="text-left py-3 px-2 font-semibold text-gray-700 min-w-[80px]">
+                {/* <th className="text-left py-3 px-2 font-semibold text-gray-700 min-w-[80px]">
                   Actions
-                </th>
+                </th> */}
               </tr>
             </thead>
             <tbody>
@@ -152,90 +152,90 @@ export function VehicleTable({ vehicles, onViewVehicle }: VehicleTableProps) {
                       {vehicle.vehicleNumber}
                     </td>
                     <td className="py-3 px-2">{vehicle.model}</td>
-                    <td className="py-3 px-2">{vehicle.make || 'N/A'}</td>
-                    <td className="py-3 px-2">{vehicle.companyName || 'N/A'}</td>
+                    <td className="py-3 px-2">{vehicle.make || '--'}</td>
+                    <td className="py-3 px-2">{vehicle.companyName || '--'}</td>
                     <td className="py-3 px-2">{vehicle.branch}</td>
                     <td className="py-3 px-2">
                       <Badge className={getStatusColor(vehicle.status)}>
                         {vehicle.status}
                       </Badge>
                     </td>
-                    <td className="py-3 px-2">{vehicle.year || 'N/A'}</td>
-                    <td className="py-3 px-2">{vehicle.color || 'N/A'}</td>
-                    <td className="py-3 px-2">{vehicle.fuelType || 'N/A'}</td>
-                    <td className="py-3 px-2">{vehicle.seatingCapacity || 'N/A'}</td>
-                    <td className="py-3 px-2">{vehicle.cargoLength || 'N/A'}</td>
-                    <td className="py-3 px-2 text-xs">{vehicle.engineNumber || 'N/A'}</td>
-                    <td className="py-3 px-2 text-xs">{vehicle.chassisNumber || 'N/A'}</td>
-                    <td className="py-3 px-2">{vehicle.vehicleDetails || 'N/A'}</td>
-                    <td className="py-3 px-2">{vehicle.acModel || 'N/A'}</td>
+                    <td className="py-3 px-2">{vehicle.year || '--'}</td>
+                    <td className="py-3 px-2">{vehicle.color || '--'}</td>
+                    <td className="py-3 px-2">{vehicle.fuelType || '--'}</td>
+                    <td className="py-3 px-2">{vehicle.seatingCapacity || '--'}</td>
+                    <td className="py-3 px-2">{vehicle.cargoLength || '--'}</td>
+                    <td className="py-3 px-2 text-xs">{vehicle.engineNumber || '--'}</td>
+                    <td className="py-3 px-2 text-xs">{vehicle.chassisNumber || '--'}</td>
+                    <td className="py-3 px-2">{vehicle.vehicleDetails || '--'}</td>
+                    <td className="py-3 px-2">{vehicle.acModel || '--'}</td>
                     <td className="py-3 px-2 text-xs">
                       {vehicle.registrationDate 
                         ? new Date(vehicle.registrationDate).toLocaleDateString()
-                        : 'N/A'
+                        : '--'
                       }
                     </td>
                     <td className="py-3 px-2 text-xs bg-orange-50">
                       {vehicle.insurance 
                         ? new Date(vehicle.insurance).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' })
-                        : 'N/A'
+                        : '--'
                       }
                     </td>
                     <td className="py-3 px-2 text-xs bg-orange-50">
                       {vehicle.roadtax 
                         ? new Date(vehicle.roadtax).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' })
-                        : 'N/A'
+                        : '--'
                       }
                     </td>
                     <td className="py-3 px-2 text-xs bg-orange-50">
                       {vehicle.puc 
                         ? new Date(vehicle.puc).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' })
-                        : 'N/A'
+                        : '--'
                       }
                     </td>
                     <td className="py-3 px-2 text-xs bg-orange-50">
                       {vehicle.fitness 
                         ? new Date(vehicle.fitness).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' })
-                        : 'N/A'
+                        : '--'
                       }
                     </td>
                     <td className="py-3 px-2 text-xs bg-orange-50">
                       {vehicle.goodsPermit 
                         ? new Date(vehicle.goodsPermit).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' })
-                        : 'N/A'
+                        : '--'
                       }
                     </td>
                     <td className="py-3 px-2 text-xs bg-orange-50">
                       {vehicle.nationalPermit 
                         ? new Date(vehicle.nationalPermit).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' })
-                        : 'N/A'
+                        : '--'
                       }
                     </td>
                     <td className="py-3 px-2 text-xs bg-orange-50">
-                      {vehicle.rc || 'N/A'}
+                      {vehicle.rc || '--'}
                     </td>
                     <td className={`py-3 px-2 text-xs bg-yellow-50 ${vehicle.insuranceDaysLeft && vehicle.insuranceDaysLeft < 0 ? 'bg-red-100 text-red-600' : ''}`}>
-                      {vehicle.insuranceDaysLeft !== undefined ? vehicle.insuranceDaysLeft : 'N/A'}
+                      {vehicle.insuranceDaysLeft !== undefined ? vehicle.insuranceDaysLeft : '--'}
                     </td>
                     <td className={`py-3 px-2 text-xs bg-yellow-50 ${vehicle.roadTaxDaysLeft && vehicle.roadTaxDaysLeft < 0 ? 'bg-red-100 text-red-600' : ''}`}>
-                      {vehicle.roadTaxDaysLeft !== undefined ? vehicle.roadTaxDaysLeft : 'N/A'}
+                      {vehicle.roadTaxDaysLeft !== undefined ? vehicle.roadTaxDaysLeft : '--'}
                     </td>
                     <td className={`py-3 px-2 text-xs bg-yellow-50 ${vehicle.pucDaysLeft && vehicle.pucDaysLeft < 0 ? 'bg-red-100 text-red-600' : ''}`}>
-                      {vehicle.pucDaysLeft !== undefined ? vehicle.pucDaysLeft : 'N/A'}
+                      {vehicle.pucDaysLeft !== undefined ? vehicle.pucDaysLeft : '--'}
                     </td>
                     <td className={`py-3 px-2 text-xs bg-yellow-50 ${vehicle.fitnessDaysLeft && vehicle.fitnessDaysLeft < 0 ? 'bg-red-100 text-red-600' : ''}`}>
-                      {vehicle.fitnessDaysLeft !== undefined ? vehicle.fitnessDaysLeft : 'N/A'}
+                      {vehicle.fitnessDaysLeft !== undefined ? vehicle.fitnessDaysLeft : '--'}
                     </td>
                     <td className={`py-3 px-2 text-xs bg-yellow-50 ${vehicle.goodsPermitDaysLeft && vehicle.goodsPermitDaysLeft < 0 ? 'bg-red-100 text-red-600' : ''}`}>
-                      {vehicle.goodsPermitDaysLeft !== undefined ? vehicle.goodsPermitDaysLeft : 'N/A'}
+                      {vehicle.goodsPermitDaysLeft !== undefined ? vehicle.goodsPermitDaysLeft : '--'}
                     </td>
                     <td className={`py-3 px-2 text-xs bg-yellow-50 ${vehicle.nationalPermitDaysLeft && vehicle.nationalPermitDaysLeft < 0 ? 'bg-red-100 text-red-600' : ''}`}>
-                      {vehicle.nationalPermitDaysLeft !== undefined ? vehicle.nationalPermitDaysLeft : 'N/A'}
+                      {vehicle.nationalPermitDaysLeft !== undefined ? vehicle.nationalPermitDaysLeft : '--'}
                     </td>
                     <td className="py-3 px-2 text-xs bg-red-50">
                       {vehicle.remark || ''}
                     </td>
-                    <td className="py-3 px-2">
+                    {/* <td className="py-3 px-2">
                       <Button
                         variant="ghost"
                         size="sm"
@@ -246,7 +246,7 @@ export function VehicleTable({ vehicles, onViewVehicle }: VehicleTableProps) {
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
-                    </td>
+                    </td> */}
                   </tr>
                 ))
               )}

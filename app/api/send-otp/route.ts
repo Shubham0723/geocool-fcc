@@ -46,6 +46,7 @@ export async function POST(request: NextRequest) {
 
     // Send email
     const emailResult = await sendOTPEmail(email, otp);
+    console.log('emailResult', emailResult);
 
     if (!emailResult.success) {
       return NextResponse.json(

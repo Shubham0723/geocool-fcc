@@ -4,25 +4,21 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { CheckCircle2, Clock, XCircle } from 'lucide-react';
 import { type Vehicle, type Operation } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { format } from 'date-fns';
+import { useRouter } from 'next/navigation';
 
 
 type OperationWithVehicle = Operation & {
   vehicles?: Vehicle;
   vehicleNumber?: string;
+  totalInvAmountPayable?: number;
+  dateSendToWS?: string;
 };
 
 export default function OperationsPage() {
+  const router = useRouter();
   const [operations, setOperations] = useState<OperationWithVehicle[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
@@ -81,39 +77,6 @@ export default function OperationsPage() {
   };
 
 
-  const handleUpdateStatus = async (operationId: string, newStatus: string) => {
-    const updateData: any = { status: newStatus };
-
-    try {
-      const response = await fetch(`/api/operations/${operationId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(updateData),
-      });
-
-      if (response.ok) {
-        toast({
-          title: 'Success',
-          description: 'Operation status updated',
-        });
-        fetchOperations();
-      } else {
-        toast({
-          title: 'Error',
-          description: 'Failed to update operation status',
-          variant: 'destructive',
-        });
-      }
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to update operation status',
-        variant: 'destructive',
-      });
-    }
-  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -150,7 +113,7 @@ export default function OperationsPage() {
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6 lg:space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Operations</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Tickets</h1>
       </div>
 
       <div className="flex flex-wrap gap-2 sm:gap-4">
@@ -188,7 +151,7 @@ export default function OperationsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Operations List</CardTitle>
+          <CardTitle>Tickets List</CardTitle>
         </CardHeader>
         <CardContent>
           {filteredOperations.length === 0 ? (
@@ -219,24 +182,24 @@ export default function OperationsPage() {
                     <th className="text-left py-3 px-4 font-semibold text-gray-700">
                       Status
                     </th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                      Actions
-                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredOperations.map((operation, index) => (
                     <tr
                       key={operation._id?.toString() || index}
-                      className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                      className="border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer"
+                      onClick={() =>
+                        operation._id && router.push(`/operation-details/${operation._id}`)
+                      }
                     >
                       {/* <td className="py-3 px-4 font-mono text-sm text-gray-600">
-                        #{operation._id?.toString().slice(0, 8) || 'N/A'}
+                        #{operation._id?.toString().slice(0, 8) || '-'}
                       </td> */}
                       <td className="py-3 px-4">
                         <div>
                           <p className="font-medium text-red-600">
-                            {operation.vehicleNumber || 'N/A'}
+                            {operation.vehicleNumber || '--'}
                           </p>
                         </div>
                       </td>
@@ -246,35 +209,15 @@ export default function OperationsPage() {
                         </Badge>
                       </td>
                       <td className="py-3 px-4 font-semibold text-green-600">
-                        ₹{operation.amount?.toLocaleString() || '0'}
+                        ₹{operation.totalInvAmountPayable?.toLocaleString() || '0'}
                       </td>
                       <td className="py-3 px-4 max-w-xs truncate">
-                        {operation.description || 'N/A'}
+                        {operation.description || '--'}
                       </td>
                       <td className="py-3 px-4 text-gray-600">
-                        {operation.operationDate 
-                          ? format(new Date(operation.operationDate), 'PP')
-                          : 'N/A'
-                        }
+                        {operation.dateSendToWS || '--'}
                       </td>
                       <td className="py-3 px-4">{getStatusBadge(operation.status)}</td>
-                      <td className="py-3 px-4">
-                        <Select
-                          value={operation.status}
-                          onValueChange={(value) =>
-                            handleUpdateStatus(operation._id?.toString() || '', value)
-                          }
-                        >
-                          <SelectTrigger className="w-[140px]">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="pending">Pending</SelectItem>
-                            <SelectItem value="approved">Approved</SelectItem>
-                            <SelectItem value="rejected">Rejected</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </td>
                     </tr>
                   ))}
                 </tbody>

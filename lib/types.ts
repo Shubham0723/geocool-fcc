@@ -33,11 +33,23 @@ export interface Vehicle {
   location?: string;
   regNo?: string;
   acMode?: string;
-  // Document fields
-  pucDocument?: string;
-  npDocument?: string;
-  insuranceDocument?: string;
-  fitnessDocument?: string;
+  // Document fields - now arrays of document objects
+  pucDocument?: Array<{
+    pucImage: string;
+    createAt: Date;
+  }>;
+  npDocument?: Array<{
+    npImage: string;
+    createAt: Date;
+  }>;
+  insuranceDocument?: Array<{
+    insuranceImage: string;
+    createAt: Date;
+  }>;
+  fitnessDocument?: Array<{
+    fitnessImage: string;
+    createAt: Date;
+  }>;
   // New columns from the image
   insurance?: Date;
   roadtax?: Date;
@@ -157,4 +169,7 @@ export interface Operation {
   approvedBy?: string;
   createdAt: Date;
   updatedAt: Date;
+  totalInvAmountPayable?: number;
+  labourWithGST?: number;
+  labour?: number;
 }

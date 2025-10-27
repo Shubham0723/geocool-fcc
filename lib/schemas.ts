@@ -32,10 +32,23 @@ export interface Vehicle {
   insuranceExpiry: Date;
   fitnessExpiry: Date;
   pucExpiry: Date;
-  pucDocument?: string;
-  npDocument?: string;
-  insuranceDocument?: string;
-  fitnessDocument?: string;
+  // Document fields - now arrays of document objects
+  pucDocument?: Array<{
+    pucImage: string;
+    createAt: Date;
+  }>;
+  npDocument?: Array<{
+    npImage: string;
+    createAt: Date;
+  }>;
+  insuranceDocument?: Array<{
+    insuranceImage: string;
+    createAt: Date;
+  }>;
+  fitnessDocument?: Array<{
+    fitnessImage: string;
+    createAt: Date;
+  }>;
   // New columns from the image
   insurance: Date;
   roadtax: Date;
@@ -142,17 +155,56 @@ export interface VehicleDocument {
 // Operation Schema (for tracking expenses and operations)
 export interface Operation {
   _id?: ObjectId;
-  vehicleId: ObjectId;
-  driverId?: ObjectId;
-  operationType: 'vehicle_service' | 'running_repairs' | 'running_repair_parts' | 'ac_service';
-  description: string;
-  amount: number;
-  location?: string;
-  operationDate: Date;
-  receiptNumber?: string;
-  receiptUrl?: string;
-  status: 'pending' | 'approved' | 'rejected';
-  approvedBy?: string;
-  createdAt: Date;
-  updatedAt: Date;
+  vehicleNumber: string; // Vehicle number (string reference)
+  vehicleId?: ObjectId; // Optional vehicle ID reference
+  operationDate: Date; // Date when operation was recorded
+  status: 'pending' | 'approved' | 'rejected'; // Operation status
+  invoiceBill?: string; // URL to uploaded invoice bill document
+  formType: 'ac-maintenance' | 'vehicle-maintenance'; // Type of form selected
+
+  // Core Operation Details
+  operationType: string; // Type of operation (from dropdown)
+  amount: number; // Original base amount entered by user
+  description?: string; // General description of operation (optional)
+
+  // Common Fields for both AC Maintenance and Vehicle Maintenance
+  dateSendToWS?: string; // Date sent to workshop (dd-mm-yyyy format)
+  workshop?: string; // Name of the workshop
+  complaints?: string; // Details of complaints
+  actionTaken?: string; // Description of action taken
+  vehReadyDateFromWS?: string; // Vehicle ready date from workshop (dd-mm-yyyy format)
+  invoiceNo?: string; // Invoice number
+  invoiceDate?: string; // Invoice date (dd-mm-yyyy format)
+
+  // AC Maintenance Specific Fields
+  acUnit?: string; // AC unit details
+  engineHrs?: number; // Engine hours
+  advisorNo?: string; // Advisor number
+
+  // Vehicle Maintenance Specific Fields
+  serviceKM?: number; // Service kilometers
+  workOrderNo?: string; // Work order number
+
+  // Financial Details
+  spare: '18%' | '28%' | ''; // Selected GST rate for spare parts
+  spareWithoutTax?: number; // Amount of spare parts without tax
+  labour?: number; // Labour charges
+  outsideLabour?: number; // Outside labour charges
+  discountOnParts: '18%' | '28%' | ''; // Discount rate on parts
+  gstOnParts: '18%' | '28%' | ''; // GST rate on parts
+  discountLabour?: number; // Discount amount on labour
+  gstOnLabour: '18%' | '28%' | ''; // GST rate on labour
+
+  // Calculated Fields
+  totalInvAmountPayable?: number; // Calculated total invoice amount payable (with all taxes)
+  totalAmountWithDiscountButWithoutTax?: number; // Calculated total (Spare After Discount + Labour After Discount)
+
+  // Additional Fields
+  remark?: string; // Additional remarks
+  jobType: 'Warranty Job' | 'Paid Service' | 'Paid Job' | 'FOC' | ''; // Type of job
+
+  // System Fields
+  approvedBy?: string; // Who approved the operation
+  createdAt: Date; // When record was created
+  updatedAt: Date; // When record was last updated
 }
