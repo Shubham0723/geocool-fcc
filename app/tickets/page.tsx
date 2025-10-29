@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CheckCircle2, Clock, XCircle } from 'lucide-react';
 import { type Vehicle, type Operation } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -21,19 +22,16 @@ export default function OperationsPage() {
   const router = useRouter();
   const [operations, setOperations] = useState<OperationWithVehicle[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [operationTypes, setOperationTypes] = useState<{ _id: string, Type_name: string }[]>([]);
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
+  const [selectedType, setSelectedType] = useState<string>('all');
   const { toast } = useToast();
 
-  useEffect(() => {
-    fetchOperations();
-    fetchVehicles();
-  }, []);
-
-  const fetchOperations = async () => {
+  const fetchOperations = useCallback(async () => {
     try {
       const response = await fetch('/api/operations');
       const data = await response.json();
-      
+
       if (response.ok) {
         setOperations(data);
       } else {
@@ -50,13 +48,13 @@ export default function OperationsPage() {
         variant: 'destructive',
       });
     }
-  };
+  }, [toast]);
 
-  const fetchVehicles = async () => {
+  const fetchVehicles = useCallback(async () => {
     try {
       const response = await fetch('/api/vehicles');
       const data = await response.json();
-      
+
       if (response.ok) {
         const activeVehicles = data.filter((vehicle: Vehicle) => vehicle.status === 'active');
         setVehicles(activeVehicles);
@@ -74,9 +72,24 @@ export default function OperationsPage() {
         variant: 'destructive',
       });
     }
-  };
+  }, [toast]);
 
+  const fetchOperationTypes = useCallback(async () => {
+    try {
+      const response = await fetch('/api/maintenance_type');
+      const data = await response.json();
+      setOperationTypes(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Error fetching operation types:', error);
+      setOperationTypes([]);
+    }
+  }, []);
 
+  useEffect(() => {
+    fetchOperations();
+    fetchVehicles();
+    fetchOperationTypes();
+  }, [fetchOperations, fetchVehicles, fetchOperationTypes]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -107,8 +120,53 @@ export default function OperationsPage() {
   };
 
   const filteredOperations = operations.filter(
-    (operation) => selectedStatus === 'all' || operation.status === selectedStatus
+    (operation) => {
+      const statusMatch = selectedStatus === 'all' || operation.status === selectedStatus;
+      const typeMatch = selectedType === 'all' || operation.operationType === selectedType;
+      return statusMatch && typeMatch;
+    }
   );
+
+  // CSV export (opens in Excel) for currently displayed rows
+  const csvEscape = (value: unknown) => {
+    const str = value === undefined || value === null ? '' : String(value);
+    if (/[",\n]/.test(str)) {
+      return '"' + str.replace(/"/g, '""') + '"';
+    }
+    return str;
+  };
+
+  // Prefix with a tab so Excel treats it as text and doesn't render #####
+  const asExcelText = (value: string) => (value ? `\t${value}` : '');
+
+  const handleDownloadCsv = () => {
+    const headers = ['Vehicle Number', 'Type', 'Amount', 'Description', 'Date', 'Status'];
+    const rows = filteredOperations.map(op => [
+      op.vehicleNumber || '--',
+      op.operationType,
+      op.totalInvAmountPayable ?? 0,
+      op.description || '',
+      // Force Excel to read as text to avoid #####
+      asExcelText(op.dateSendToWS || ''),
+      op.status,
+    ]);
+
+    const csvContent = [headers, ...rows]
+      .map(row => row.map(csvEscape).join(','))
+      .join('\n');
+
+    // Prepend BOM to ensure Excel reads UTF-8 correctly
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    const timestamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+    link.download = `tickets-${timestamp}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6 lg:space-y-8">
@@ -151,7 +209,26 @@ export default function OperationsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Tickets List</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle>Tickets List</CardTitle>
+            <div className="flex items-center gap-3">
+              <Button variant="outline" onClick={handleDownloadCsv}>Download CSV</Button>
+              <span className="text-sm text-gray-600">Filter by Type:</span>
+              <Select value={selectedType} onValueChange={setSelectedType}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  {operationTypes.map(type => (
+                    <SelectItem key={type._id} value={type.Type_name}>
+                      {type.Type_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           {filteredOperations.length === 0 ? (

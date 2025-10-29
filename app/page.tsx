@@ -34,6 +34,39 @@ type DateRange = {
   from: Date | undefined;
   to: Date | undefined;
 };
+type CostTrend = {
+  month: string;
+  cost: number;
+  costWithoutGST: number;
+};
+
+type LabourTrend = {
+  month: string;
+  labour: number;
+  labourWithGST: number;
+};
+
+type VerificationDocument = {
+  _id?: string;
+  vehicleId?: string;
+  vehicleNumber?: string;
+  documentType: string;
+  documentNumber?: string;
+  issueDate?: string | Date;
+  expiryDate?: string | Date;
+  issuingAuthority?: string;
+  fileUrl?: string;
+  isActive?: boolean;
+};
+
+type ExpiredLicenseDoc = {
+  _id?: string;
+  vehicleNumber: string;
+  documentType: 'PUC' | 'RC' | 'NP' | 'Insurance' | 'Road Tax' | 'Goods Permit';
+  documentNumber: string;
+  expiryDate: string | Date;
+  issuingAuthority: string;
+};
 
 export default function DashboardPage() {
   const [includeGST, setIncludeGST] = useState(true);
@@ -49,11 +82,11 @@ export default function DashboardPage() {
     withGST: 0,
     withoutGST: 0,
   });
-  const [costTrends, setCostTrends] = useState<any[]>([]);
-  const [labourTrends, setLabourTrends] = useState<any[]>([]);
-  const [expiredDocs, setExpiredDocs] = useState<any[]>([]);
-  const [expiredLicenses, setExpiredLicenses] = useState<any[]>([]);
-  const [filteredLicenses, setFilteredLicenses] = useState<any[]>([]);
+  const [costTrends, setCostTrends] = useState<CostTrend[]>([]);
+  const [labourTrends, setLabourTrends] = useState<LabourTrend[]>([]);
+  const [expiredDocs, setExpiredDocs] = useState<VerificationDocument[]>([]);
+  const [expiredLicenses, setExpiredLicenses] = useState<ExpiredLicenseDoc[]>([]);
+  const [filteredLicenses, setFilteredLicenses] = useState<ExpiredLicenseDoc[]>([]);
   const [selectedDocumentType, setSelectedDocumentType] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [documentCounts, setDocumentCounts] = useState({
@@ -61,6 +94,8 @@ export default function DashboardPage() {
     np: 0,
     insurance: 0,
     rc: 0,
+    roadTax: 0,
+    goodsPermit: 0,
   });
 
   useEffect(() => {
@@ -69,23 +104,49 @@ export default function DashboardPage() {
 
   useEffect(() => {
     let filtered = expiredLicenses;
-    
+
     // Filter by document type
     if (selectedDocumentType !== 'all') {
-      filtered = filtered.filter(license => 
+      filtered = filtered.filter(license =>
         license.documentType === selectedDocumentType
       );
     }
-    
+
     // Filter by search term (vehicle number)
     if (searchTerm.trim()) {
-      filtered = filtered.filter(license => 
+      filtered = filtered.filter(license =>
         license.vehicleNumber.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
-    
+
     setFilteredLicenses(filtered);
   }, [selectedDocumentType, searchTerm, expiredLicenses]);
+
+  const normalizeDocumentType = (raw: unknown): ExpiredLicenseDoc['documentType'] | undefined => {
+    if (!raw) return undefined;
+    const s = String(raw).toLowerCase().replace(/\s+/g, '');
+    if (s === 'puc') return 'PUC';
+    if (s === 'rc') return 'RC';
+    if (s === 'np') return 'NP';
+    if (s === 'insurance') return 'Insurance';
+    if (s === 'roadtax') return 'Road Tax';
+    if (s === 'goodspermit') return 'Goods Permit';
+    return undefined;
+  };
+
+  const normalizeVerificationDoc = (doc: any): ExpiredLicenseDoc | null => {
+    const normalizedType = normalizeDocumentType(doc?.documentType ?? doc?.type ?? doc?.document_type);
+    if (!normalizedType) return null;
+    const vehicleNumber = doc?.vehicleNumber ?? doc?.vehicle_no ?? doc?.vehicle ?? '--';
+    return {
+      _id: doc?._id,
+      vehicleNumber,
+      documentType: normalizedType,
+      documentNumber: doc?.documentNumber ?? doc?.number ?? doc?.doc_no ?? '',
+      expiryDate: doc?.expiryDate ?? doc?.expiry_date ?? doc?.expiresOn ?? '',
+      issuingAuthority: doc?.issuingAuthority ?? doc?.authority ?? '',
+    };
+  };
 
   const fetchDashboardData = async () => {
     try {
@@ -101,8 +162,8 @@ export default function DashboardPage() {
         // Calculate total without GST: sum of spare without tax + labour + original amount + outside labour
         const totalWithoutGST = operations.reduce(
           (sum: number, op: any) => {
-            return sum + Number(op.spareWithoutTax || 0) + Number(op.labour || 0) + 
-                   Number(op.amount || 0) + Number(op.outsideLabour || 0);
+            return sum + Number(op.spareWithoutTax || 0) + Number(op.labour || 0) +
+              Number(op.amount || 0) + Number(op.outsideLabour || 0);
           },
           0
         );
@@ -134,16 +195,16 @@ export default function DashboardPage() {
           }
           acc[month].cost += Number(op.totalInvAmountPayable || 0);
           // Calculate cost without GST: spare without tax + labour + original amount + outside labour
-          const costWithoutGST = Number(op.spareWithoutTax || 0) + Number(op.labour || 0) + 
-                                 Number(op.amount || 0) + Number(op.outsideLabour || 0);
+          const costWithoutGST = Number(op.spareWithoutTax || 0) + Number(op.labour || 0) +
+            Number(op.amount || 0) + Number(op.outsideLabour || 0);
           acc[month].costWithoutGST += costWithoutGST;
           return acc;
         }, {});
 
         const costTrendArr = Object.values(monthlyData).sort((a, b) =>
-          new Date("01 " + (a as any).month).getTime() - new Date("01 " + (b as any).month).getTime()
+          new Date("01 " + (a as { month: string }).month).getTime() - new Date("01 " + (b as { month: string }).month).getTime()
         );
-        setCostTrends(costTrendArr);
+        setCostTrends(costTrendArr as CostTrend[]);
 
         const monthlyLabour = operations.reduce((acc: any, op: any) => {
           const month = format(new Date(op.operationDate), 'MMM yyyy');
@@ -156,24 +217,25 @@ export default function DashboardPage() {
         }, {});
 
         const labourTrendArr = Object.values(monthlyLabour).sort((a, b) =>
-          new Date("01 " + (a as any).month).getTime() - new Date("01 " + (b as any).month).getTime()
+          new Date("01 " + (a as { month: string }).month).getTime() - new Date("01 " + (b as { month: string }).month).getTime()
         );
-        setLabourTrends(labourTrendArr);
+        setLabourTrends(labourTrendArr as LabourTrend[]);
       }
 
       // Fetch expired documents from verification API (excluding licenses)
       const expiredResponse = await fetch('/api/verification?expired=true');
       const expiredDocuments = await expiredResponse.json();
-      
+      const normalizedDocs: ExpiredLicenseDoc[] = (Array.isArray(expiredDocuments) ? expiredDocuments : [])
+        .map(normalizeVerificationDoc)
+        .filter(Boolean) as ExpiredLicenseDoc[];
+
       // Filter out license-related documents from expired docs (keep only other document types)
-      const nonLicenseDocs = expiredDocuments.filter((doc: any) => 
-        !['PUC', 'RC', 'NP', 'Insurance'].includes(doc.documentType)
-      );
+      const nonLicenseDocs: VerificationDocument[] = [];
       setExpiredDocs(nonLicenseDocs);
-      
-      // Filter license-related documents for expired licenses (PUC, RC, NP, Insurance)
-      const licenseDocs = expiredDocuments.filter((doc: any) => 
-        ['PUC', 'RC', 'NP', 'Insurance'].includes(doc.documentType)
+
+      // Filter license-related documents for expired licenses (PUC, RC, NP, Insurance, Road Tax, Goods Permit)
+      const licenseDocs = normalizedDocs.filter((doc: any) =>
+        ['PUC', 'RC', 'NP', 'Insurance', 'Road Tax', 'Goods Permit'].includes(doc.documentType)
       );
       setExpiredLicenses(licenseDocs);
       setFilteredLicenses(licenseDocs);
@@ -184,6 +246,8 @@ export default function DashboardPage() {
         np: licenseDocs.filter((doc: any) => doc.documentType === 'NP').length,
         insurance: licenseDocs.filter((doc: any) => doc.documentType === 'Insurance').length,
         rc: licenseDocs.filter((doc: any) => doc.documentType === 'RC').length,
+        roadTax: licenseDocs.filter((doc: any) => doc.documentType === 'Road Tax').length,
+        goodsPermit: licenseDocs.filter((doc: any) => doc.documentType === 'Goods Permit').length,
       };
       setDocumentCounts(counts);
     } catch (error) {
@@ -191,12 +255,39 @@ export default function DashboardPage() {
     }
   };
 
-  const handleExportExcel = () => {
-    alert('Excel export functionality - Date range: ' +
-      (dateRange.from ? format(dateRange.from, 'PP') : 'Not set') +
-      ' to ' +
-      (dateRange.to ? format(dateRange.to, 'PP') : 'Not set')
-    );
+  // CSV helpers similar to tickets page
+  const csvEscape = (value: unknown) => {
+    const str = value === undefined || value === null ? '' : String(value);
+    if (/[",\n]/.test(str)) {
+      return '"' + str.replace(/"/g, '""') + '"';
+    }
+    return str;
+  };
+
+  const handleDownloadCsv = () => {
+    const maintenance = includeGST ? maintenanceCost.withGST : maintenanceCost.withoutGST;
+    const labour = includeGST ? labourCost.withGST : labourCost.withoutGST;
+    const total = maintenance + labour;
+
+    const headers = ['Maintenance Cost', 'Labour Costing', 'Total Cost'];
+    const rows = [[maintenance, labour, total]];
+
+    const csvContent = [headers, ...rows]
+      .map(row => row.map(csvEscape).join(','))
+      .join('\n');
+
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    const rangePart = dateRange.from && dateRange.to
+      ? `${format(dateRange.from, 'yyyy-MM-dd')}_to_${format(dateRange.to, 'yyyy-MM-dd')}`
+      : 'all-time';
+    link.download = `dashboard-summary-${rangePart}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -222,8 +313,8 @@ export default function DashboardPage() {
               Maintenance Cost
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-red-600">
+          <CardContent className="min-w-0">
+            <div className="text-3xl font-bold text-red-600 truncate whitespace-nowrap">
               ₹{includeGST
                 ? maintenanceCost.withGST.toLocaleString()
                 : maintenanceCost.withoutGST.toLocaleString()}
@@ -240,8 +331,8 @@ export default function DashboardPage() {
               Labour Costing
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-red-600">
+          <CardContent className="min-w-0">
+            <div className="text-3xl font-bold text-red-600 truncate whitespace-nowrap">
               ₹{includeGST
                 ? labourCost.withGST.toLocaleString()
                 : labourCost.withoutGST.toLocaleString()}
@@ -258,8 +349,8 @@ export default function DashboardPage() {
               Total Cost
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-red-600">
+          <CardContent className="min-w-0">
+            <div className="text-3xl font-bold text-red-600 truncate whitespace-nowrap">
               ₹{includeGST
                 ? (maintenanceCost.withGST + labourCost.withGST).toLocaleString()
                 : (maintenanceCost.withoutGST + labourCost.withoutGST).toLocaleString()}
@@ -289,10 +380,11 @@ export default function DashboardPage() {
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   {dateRange.from ? (
                     dateRange.to ? (
-                      <>
-                        {format(dateRange.from, 'LLL dd, y')} -{' '}
+                      <span className="whitespace-pre-line leading-tight">
+                        {`${format(dateRange.from, 'LLL dd, y')}-`}
+                        <br />
                         {format(dateRange.to, 'LLL dd, y')}
-                      </>
+                      </span>
                     ) : (
                       format(dateRange.from, 'LLL dd, y')
                     )
@@ -303,16 +395,14 @@ export default function DashboardPage() {
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
                 <Calendar
-                  mode="single"
-                  selected={dateRange.from}
-                  onSelect={(date) =>
-                    setDateRange({ ...dateRange, from: date })
-                  }
+                  mode="range"
+                  selected={dateRange}
+                  onSelect={(range) => setDateRange(range as DateRange)}
                 />
               </PopoverContent>
             </Popover>
             <Button
-              onClick={handleExportExcel}
+              onClick={handleDownloadCsv}
               className="w-full mt-2 bg-red-600 hover:bg-red-700"
             >
               <Download className="mr-2 h-4 w-4" />
@@ -364,10 +454,10 @@ export default function DashboardPage() {
                 <YAxis />
                 <Tooltip />
                 <Legend />
-                <Bar 
-                  dataKey={includeGST ? "labourWithGST" : "labour"} 
-                  fill="#dc2626" 
-                  name={includeGST ? "Labour (With GST)" : "Labour (Without GST)"} 
+                <Bar
+                  dataKey={includeGST ? "labourWithGST" : "labour"}
+                  fill="#dc2626"
+                  name={includeGST ? "Labour (With GST)" : "Labour (Without GST)"}
                 />
               </BarChart>
             </ResponsiveContainer>
@@ -375,8 +465,8 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-   {/* Document Type Summary Cards */}
-   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* Document Type Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card className="border-l-4 border-l-blue-600 hover:shadow-lg transition-shadow">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-gray-600">
@@ -432,6 +522,34 @@ export default function DashboardPage() {
             <p className="text-xs text-gray-500 mt-1">Expired RC</p>
           </CardContent>
         </Card>
+
+        <Card className="border-l-4 border-l-amber-600 hover:shadow-lg transition-shadow">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-gray-600">
+              Road Tax Documents
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-amber-600">
+              {documentCounts.roadTax}
+            </div>
+            <p className="text-xs text-gray-500 mt-1">Expired Road Tax</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-yellow-600 hover:shadow-lg transition-shadow">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-gray-600">
+              Goods Permit Documents
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-yellow-600">
+              {documentCounts.goodsPermit}
+            </div>
+            <p className="text-xs text-gray-500 mt-1">Expired Goods Permit</p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Expired Licenses Section */}
@@ -472,6 +590,8 @@ export default function DashboardPage() {
                     <SelectItem value="RC">RC</SelectItem>
                     <SelectItem value="NP">NP</SelectItem>
                     <SelectItem value="Insurance">Insurance</SelectItem>
+                    <SelectItem value="Road Tax">Road Tax</SelectItem>
+                    <SelectItem value="Goods Permit">Goods Permit</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -481,9 +601,9 @@ export default function DashboardPage() {
         <CardContent>
           {filteredLicenses.length === 0 ? (
             <p className="text-gray-500 text-center py-8">
-              {expiredLicenses.length === 0 
-                ? 'No expired vehicle documents found' 
-                : searchTerm.trim() 
+              {expiredLicenses.length === 0
+                ? 'No expired vehicle documents found'
+                : searchTerm.trim()
                   ? `No documents found for vehicle "${searchTerm}"`
                   : 'No documents found for the selected type'
               }

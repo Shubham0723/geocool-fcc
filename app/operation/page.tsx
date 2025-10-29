@@ -79,7 +79,7 @@ export default function OperationPage() {
     jobType: '',
   });
   // New state for dynamic types
-  const [operationTypes, setOperationTypes] = useState<{_id: string, Type_name: string}[]>([]);
+  const [operationTypes, setOperationTypes] = useState<{ _id: string, Type_name: string }[]>([]);
   const [typeInput, setTypeInput] = useState('');
   const [addingType, setAddingType] = useState(false);
   const [file, setFile] = useState<File | null>(null);
@@ -113,7 +113,7 @@ export default function OperationPage() {
     try {
       const response = await fetch('/api/vehicles');
       const data = await response.json();
-      
+
       if (response.ok) {
         // Show all vehicles, not just active ones
         setVehicles(data || []);
@@ -143,7 +143,7 @@ export default function OperationPage() {
     try {
       const response = await fetch(`/api/operations?vehicleId=${vehicleId}`);
       const data = await response.json();
-      
+
       if (response.ok) {
         setOperations(data.slice(0, 10)); // Limit to 10 most recent
       } else {
@@ -188,7 +188,7 @@ export default function OperationPage() {
         await fetchOperationTypes();
         setOperationData(d => ({ ...d, operationType: result.Type_name }));
       } else {
-        toast({ title: 'Error', description: result.error || 'Failed to add type', variant: 'destructive'});
+        toast({ title: 'Error', description: result.error || 'Failed to add type', variant: 'destructive' });
       }
     } catch (e) {
       toast({ title: 'Error', description: 'Failed to add type', variant: 'destructive' });
@@ -213,7 +213,7 @@ export default function OperationPage() {
     const labour = parseFloat(operationData.labour) || 0;
     const outsideLabour = parseFloat(operationData.outsideLabour) || 0;
     const discountLabour = parseFloat(operationData.discountLabour) || 0;
-    
+
     // Get percentage values
     const spareRate = operationData.spare === '18%' ? 0.18 : operationData.spare === '28%' ? 0.28 : 0;
     const discountOnPartsRate = operationData.discountOnParts === '18%' ? 0.18 : operationData.discountOnParts === '28%' ? 0.28 : 0;
@@ -229,24 +229,24 @@ export default function OperationPage() {
     const spareAfterDiscount = spareWithoutTax - spareDiscountAmount;
     const spareGSTAmount = spareAfterDiscount * gstOnPartsRate;
     const spareWithGST = spareAfterDiscount + spareGSTAmount;
-    
+
     // Calculate labour: First apply discount (as %), then add GST on discounted amount
     const labourDiscountAmount = labour * (discountLabour / 100);
     const labourAfterDiscount = labour - labourDiscountAmount;
     const labourGSTAmount = labourAfterDiscount * gstOnLabourRate;
     const labourWithGST = labourAfterDiscount + labourGSTAmount;
-    
+
     // Outside labour (no GST applied)
     const outsideLabourWithGST = outsideLabour;
-    
+
     // Calculate totals
     const totalWithGST = originalAmount + spareWithGST + labourWithGST + outsideLabourWithGST;
     const totalWithoutGST = originalAmount + spareWithoutTax + labour + outsideLabour;
     const totalDiscountAmount = spareDiscountAmount + discountLabour;
-    
+
     // Total Inv Amount Payable = all amounts with GST
     const totalInvAmountPayable = totalWithGST;
-    
+
     // Total Amount with Discount but Without Tax = Spare After Discount + Labour After Discount
     const totalAmountWithDiscountButWithoutTax = spareAfterDiscount + labourAfterDiscount;
 
@@ -444,7 +444,7 @@ export default function OperationPage() {
                 )}
               </div>
             </div>
-            
+
             {searchTerm && filteredVehicles.length > 0 && (
               <div className="max-h-60 overflow-y-auto border rounded-md">
                 {filteredVehicles.map((vehicle) => (
@@ -474,10 +474,10 @@ export default function OperationPage() {
                 ))}
               </div>
             )}
-            
+
             {searchTerm && filteredVehicles.length === 0 && (
               <div className="text-center py-4 text-gray-500">
-                No vehicles found matching "{searchTerm}"
+                No vehicles found matching {searchTerm}
               </div>
             )}
 
@@ -505,91 +505,6 @@ export default function OperationPage() {
           </div>
         </CardContent>
       </Card>
-
-      {/* Vehicle List Table */}
-      <Card className="border-l-4 border-l-red-600">
-        <CardHeader>
-          <CardTitle>Vehicle List</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-400 transition-colors">
-            <table className="w-full min-w-[1200px]">
-              <thead>
-                <tr className="border-b border-gray-200 bg-gray-50">
-                  <th className="text-left py-3 px-2 font-semibold text-gray-700 min-w-[120px]">
-                    Vehicle Number
-                  </th>
-                  <th className="text-left py-3 px-2 font-semibold text-gray-700 min-w-[100px]">
-                    Model
-                  </th>
-                  <th className="text-left py-3 px-2 font-semibold text-gray-700 min-w-[100px]">
-                    Make
-                  </th>
-                  <th className="text-left py-3 px-2 font-semibold text-gray-700 min-w-[150px]">
-                    Company Name
-                  </th>
-                  <th className="text-left py-3 px-2 font-semibold text-gray-700 min-w-[100px]">
-                    Branch
-                  </th>
-                  <th className="text-left py-3 px-2 font-semibold text-gray-700 min-w-[80px]">
-                    Year
-                  </th>
-                  <th className="text-left py-3 px-2 font-semibold text-gray-700 min-w-[120px]">
-                    Chassis Number
-                  </th>
-                  <th className="text-left py-3 px-2 font-semibold text-gray-700 min-w-[100px]">
-                    AC Model
-                  </th>
-                  <th className="text-left py-3 px-2 font-semibold text-gray-700 min-w-[120px]">
-                    Registration Date
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {vehicles.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={9}
-                      className="text-center py-8 text-gray-500"
-                    >
-                      No vehicles found
-                    </td>
-                  </tr>
-                ) : (
-                  vehicles.map((vehicle) => (
-                    <tr
-                      key={vehicle._id?.toString() || Math.random()}
-                      className="border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer"
-                      onClick={() => {
-                        setSelectedVehicle(vehicle);
-                        setSearchTerm(vehicle.vehicleNumber);
-                      }}
-                    >
-                      <td className="py-3 px-2 text-red-600 font-medium">
-                        {vehicle.vehicleNumber}
-                      </td>
-                      <td className="py-3 px-2">{vehicle.model || '--'}</td>
-                      <td className="py-3 px-2">{vehicle.make || '--'}</td>
-                      <td className="py-3 px-2">{vehicle.companyName || '--'}</td>
-                      <td className="py-3 px-2">{vehicle.branch || '--'}</td>
-                      <td className="py-3 px-2">{vehicle.year || '--'}</td>
-                      <td className="py-3 px-2 text-xs">{vehicle.chassisNumber || '--'}</td>
-                      <td className="py-3 px-2">{vehicle.acModel || '--'}</td>
-                      <td className="py-3 px-2 text-xs">
-                        {vehicle.registrationDate
-                          ? new Date(vehicle.registrationDate).toLocaleDateString()
-                          : '--'
-                        }
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
-
       {selectedVehicle && (
         <>
           <Card className="border-l-4 border-l-red-600">
@@ -665,13 +580,17 @@ export default function OperationPage() {
                         <div className="flex gap-8">
                           <div className="space-y-3">
                             <Label htmlFor="acUnit" className="text-sm font-medium">AC Unit</Label>
-                            <Input
-                              id="acUnit"
-                              placeholder="Enter AC unit details"
+                            <Select
                               value={operationData.acUnit}
-                              onChange={e => setOperationData({ ...operationData, acUnit: e.target.value })}
-                              className="h-10 w-80"
-                            />
+                              onValueChange={(val) => setOperationData({ ...operationData, acUnit: val })}
+                            >
+                              <SelectTrigger id="acUnit" className="h-10 w-80">
+                                <SelectValue placeholder="Select AC unit" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Oasis-250">Oasis-250</SelectItem>
+                              </SelectContent>
+                            </Select>
                           </div>
                           <div className="space-y-3">
                             <Label htmlFor="advisorNo" className="text-sm font-medium">Advisor No</Label>
@@ -703,7 +622,7 @@ export default function OperationPage() {
                               id="vehReadyDateFromWS"
                               type="date"
                               value={operationData.vehReadyDateFromWS}
-                              onChange={e => setOperationData({ ...operationData, vehReadyDateFromWS: e.target.value})}
+                              onChange={e => setOperationData({ ...operationData, vehReadyDateFromWS: e.target.value })}
                               className="h-10 w-64"
                             />
                           </div>
@@ -795,7 +714,7 @@ export default function OperationPage() {
                               id="invoiceNo"
                               placeholder="Enter invoice number"
                               value={operationData.invoiceNo}
-                              onChange={e => setOperationData({ ...operationData, invoiceNo: e.target.value})}
+                              onChange={e => setOperationData({ ...operationData, invoiceNo: e.target.value })}
                               className="h-10 w-64"
                             />
                           </div>
@@ -804,7 +723,7 @@ export default function OperationPage() {
                         {/* Additional Details Section */}
                         <div className="border-t pt-8 mt-8">
                           <h4 className="text-xl font-semibold mb-8">Additional Details</h4>
-                          
+
                           {/* Spare and Spare Without Tax */}
                           <div className="flex gap-8 mb-8">
                             <div className="space-y-3">
@@ -1017,7 +936,7 @@ export default function OperationPage() {
                                     <div className="text-sm text-blue-600">Spare After Discount: ₹{calculateTotalAmounts().spareAfterDiscount}</div>
                                   </div>
                                 )}
-                                
+
                                 {operationData.spareWithoutTax && operationData.gstOnParts && (
                                   <div className="space-y-2">
                                     <Label className="text-sm font-medium text-blue-700">Spare GST Amount</Label>
@@ -1025,7 +944,7 @@ export default function OperationPage() {
                                     <div className="text-sm text-blue-600">Spare with GST: ₹{calculateTotalAmounts().spareWithGST}</div>
                                   </div>
                                 )}
-                                
+
                                 {operationData.labour && operationData.discountLabour && (
                                   <div className="space-y-2">
                                     <Label className="text-sm font-medium text-blue-700">Labour Discount Amount</Label>
@@ -1033,7 +952,7 @@ export default function OperationPage() {
                                     <div className="text-sm text-blue-600">Labour After Discount: ₹{calculateTotalAmounts().labourAfterDiscount}</div>
                                   </div>
                                 )}
-                                
+
                                 {operationData.labour && operationData.gstOnLabour && (
                                   <div className="space-y-2">
                                     <Label className="text-sm font-medium text-blue-700">Labour GST Amount</Label>
@@ -1041,7 +960,7 @@ export default function OperationPage() {
                                     <div className="text-sm text-blue-600">Labour with GST: ₹{calculateTotalAmounts().labourWithGST}</div>
                                   </div>
                                 )}
-                                
+
                                 {operationData.outsideLabour && (
                                   <div className="space-y-2">
                                     <Label className="text-sm font-medium text-blue-700">Outside Labour</Label>
@@ -1050,7 +969,7 @@ export default function OperationPage() {
                                   </div>
                                 )}
                               </div>
-                              
+
                               <div className="mt-4 pt-3 border-t border-blue-200">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                   <div className="space-y-1">
@@ -1325,7 +1244,7 @@ export default function OperationPage() {
                         {/* Additional Details Section */}
                         <div className="border-t pt-8 mt-8">
                           <h4 className="text-xl font-semibold mb-8">Additional Details</h4>
-                          
+
                           {/* Spare and Spare Without Tax */}
                           <div className="flex gap-8 mb-8">
                             <div className="space-y-3">
@@ -1538,7 +1457,7 @@ export default function OperationPage() {
                                     <div className="text-sm text-blue-600">Spare After Discount: ₹{calculateTotalAmounts().spareAfterDiscount}</div>
                                   </div>
                                 )}
-                                
+
                                 {operationData.spareWithoutTax && operationData.gstOnParts && (
                                   <div className="space-y-2">
                                     <Label className="text-sm font-medium text-blue-700">Spare GST Amount</Label>
@@ -1546,7 +1465,7 @@ export default function OperationPage() {
                                     <div className="text-sm text-blue-600">Spare with GST: ₹{calculateTotalAmounts().spareWithGST}</div>
                                   </div>
                                 )}
-                                
+
                                 {operationData.labour && operationData.discountLabour && (
                                   <div className="space-y-2">
                                     <Label className="text-sm font-medium text-blue-700">Labour Discount Amount</Label>
@@ -1554,7 +1473,7 @@ export default function OperationPage() {
                                     <div className="text-sm text-blue-600">Labour After Discount: ₹{calculateTotalAmounts().labourAfterDiscount}</div>
                                   </div>
                                 )}
-                                
+
                                 {operationData.labour && operationData.gstOnLabour && (
                                   <div className="space-y-2">
                                     <Label className="text-sm font-medium text-blue-700">Labour GST Amount</Label>
@@ -1562,7 +1481,7 @@ export default function OperationPage() {
                                     <div className="text-sm text-blue-600">Labour with GST: ₹{calculateTotalAmounts().labourWithGST}</div>
                                   </div>
                                 )}
-                                
+
                                 {operationData.outsideLabour && (
                                   <div className="space-y-2">
                                     <Label className="text-sm font-medium text-blue-700">Outside Labour</Label>
@@ -1571,7 +1490,7 @@ export default function OperationPage() {
                                   </div>
                                 )}
                               </div>
-                              
+
                               <div className="mt-4 pt-3 border-t border-blue-200">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                   <div className="space-y-1">
@@ -1682,9 +1601,9 @@ export default function OperationPage() {
                       {/* File Upload */}
                       <div className="space-y-3">
                         <Label htmlFor="invoice-bill" className="text-sm font-medium">Invoice Pic / Bill Upload</Label>
-                        <Input 
-                          type="file" 
-                          id="invoice-bill" 
+                        <Input
+                          type="file"
+                          id="invoice-bill"
                           onChange={e => {
                             if (e.target.files && e.target.files[0]) {
                               setFile(e.target.files[0]);
@@ -1693,8 +1612,8 @@ export default function OperationPage() {
                               setFile(null);
                               setFileUrlPreview(null);
                             }
-                          }} 
-                          className="w-96" 
+                          }}
+                          className="w-96"
                         />
                         {file && fileUrlPreview && (
                           <div className="mt-4">
@@ -1779,6 +1698,90 @@ export default function OperationPage() {
           </Card>
         </>
       )}
+
+      {/* Vehicle List Table */}
+      <Card className="border-l-4 border-l-red-600">
+        <CardHeader>
+          <CardTitle>Vehicle List</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-400 transition-colors">
+            <table className="w-full min-w-[1200px]">
+              <thead>
+                <tr className="border-b border-gray-200 bg-gray-50">
+                  <th className="text-left py-3 px-2 font-semibold text-gray-700 min-w-[120px]">
+                    Vehicle Number
+                  </th>
+                  <th className="text-left py-3 px-2 font-semibold text-gray-700 min-w-[100px]">
+                    Model
+                  </th>
+                  <th className="text-left py-3 px-2 font-semibold text-gray-700 min-w-[100px]">
+                    Make
+                  </th>
+                  <th className="text-left py-3 px-2 font-semibold text-gray-700 min-w-[150px]">
+                    Company Name
+                  </th>
+                  <th className="text-left py-3 px-2 font-semibold text-gray-700 min-w-[100px]">
+                    Branch
+                  </th>
+                  <th className="text-left py-3 px-2 font-semibold text-gray-700 min-w-[80px]">
+                    Year
+                  </th>
+                  <th className="text-left py-3 px-2 font-semibold text-gray-700 min-w-[120px]">
+                    Chassis Number
+                  </th>
+                  <th className="text-left py-3 px-2 font-semibold text-gray-700 min-w-[100px]">
+                    AC Model
+                  </th>
+                  <th className="text-left py-3 px-2 font-semibold text-gray-700 min-w-[120px]">
+                    Registration Date
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {vehicles.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={9}
+                      className="text-center py-8 text-gray-500"
+                    >
+                      No vehicles found
+                    </td>
+                  </tr>
+                ) : (
+                  vehicles.map((vehicle) => (
+                    <tr
+                      key={vehicle._id?.toString() || Math.random()}
+                      className="border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer"
+                      onClick={() => {
+                        setSelectedVehicle(vehicle);
+                        setSearchTerm(vehicle.vehicleNumber);
+                      }}
+                    >
+                      <td className="py-3 px-2 text-red-600 font-medium">
+                        {vehicle.vehicleNumber}
+                      </td>
+                      <td className="py-3 px-2">{vehicle.model || '--'}</td>
+                      <td className="py-3 px-2">{vehicle.make || '--'}</td>
+                      <td className="py-3 px-2">{vehicle.companyName || '--'}</td>
+                      <td className="py-3 px-2">{vehicle.branch || '--'}</td>
+                      <td className="py-3 px-2">{vehicle.year || '--'}</td>
+                      <td className="py-3 px-2 text-xs">{vehicle.chassisNumber || '--'}</td>
+                      <td className="py-3 px-2">{vehicle.acModel || '--'}</td>
+                      <td className="py-3 px-2 text-xs">
+                        {vehicle.registrationDate
+                          ? new Date(vehicle.registrationDate).toLocaleDateString()
+                          : '--'
+                        }
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
