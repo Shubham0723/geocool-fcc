@@ -5,38 +5,58 @@ import { useRouter } from 'next/navigation';
 import { Mail, Lock, ArrowRight, Shield, Loader2 } from 'lucide-react';
 
 export default function LoginPage() {
-  const [step, setStep] = useState<'email' | 'otp'>('email');
+  const [step, setStep] = useState<'phone' | 'otp'>('phone');
+  const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const router = useRouter();
 
-  const handleEmailSubmit = async (e: React.FormEvent) => {
+  const handlePhoneSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) return;
+    // Choose identifier: prefer phone if provided, else email
+    const phoneDigits = String(phone).replace(/\D/g, '');
+    const hasPhone = phoneDigits.length >= 8;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const hasEmail = emailRegex.test(email);
+
+    if (!hasPhone && !hasEmail) {
+      setError('Enter a valid phone number or email');
+      return;
+    }
 
     setLoading(true);
     setError('');
     setSuccess('');
 
     try {
-      const response = await fetch('/api/send-otp', {
+      const endpoint = hasPhone ? '/api/send-otp-whatsapp' : '/api/send-otp';
+      const chosenIdentifier = hasPhone ? phoneDigits : email;
+      const payload = hasPhone ? { phone: phoneDigits } : { email };
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json();
 
-      if (data.success) {
+      if (!response.ok) {
+        setError(data.error || data.message || 'Failed to send OTP');
+        return;
+      }
+
+      if (data.status || data.success) {
         setStep('otp');
-        setSuccess(`OTP sent successfully to ${email}!`);
+        setIdentifier(chosenIdentifier);
+        setSuccess(`OTP sent successfully to ${chosenIdentifier}!`);
       } else {
-        setError(data.message || 'Failed to send OTP');
+        setError(data.error || data.message || 'Failed to send OTP');
       }
     } catch (error) {
       setError('Network error. Please try again.');
@@ -68,7 +88,7 @@ export default function LoginPage() {
   const handleOtpSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const otpCode = otp.join('');
-    
+
     if (otpCode.length !== 6) {
       setError('Please enter the complete 6-digit OTP');
       return;
@@ -84,7 +104,8 @@ export default function LoginPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, otp: otpCode }),
+        // Server uses this identifier (email or phone string) to verify and set cookie
+        body: JSON.stringify({ email: identifier || email || phone, otp: otpCode }),
       });
 
       const data = await response.json();
@@ -106,10 +127,11 @@ export default function LoginPage() {
   };
 
   const handleBack = () => {
-    setStep('email');
+    setStep('phone');
     setOtp(['', '', '', '', '', '']);
     setError('');
     setSuccess('');
+    setIdentifier('');
   };
 
   const handleResendOtp = async () => {
@@ -118,21 +140,34 @@ export default function LoginPage() {
     setSuccess('');
 
     try {
-      const response = await fetch('/api/send-otp', {
+      // Resend based on original choice
+      const phoneDigits = String(phone).replace(/\D/g, '');
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const hasPhone = identifier ? /^\d+$/.test(identifier) : phoneDigits.length >= 8;
+      const hasEmail = identifier ? !/^\d+$/.test(identifier) : emailRegex.test(email);
+      const endpoint = hasPhone ? '/api/send-otp-whatsapp' : '/api/send-otp';
+      const payload = hasPhone ? { phone: identifier || phoneDigits } : { email: identifier || email };
+      const display = hasPhone ? (identifier || phoneDigits) : (identifier || email);
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json();
 
-      if (data.success) {
-        setSuccess(`New OTP sent successfully to ${email}!`);
+      if (!response.ok) {
+        setError(data.error || data.message || 'Failed to resend OTP');
+        return;
+      }
+
+      if (data.status || data.success) {
+        setSuccess(`New OTP sent successfully to ${display}!`);
         setOtp(['', '', '', '', '', '']);
       } else {
-        setError(data.message || 'Failed to resend OTP');
+        setError(data.error || data.message || 'Failed to resend OTP');
       }
     } catch (error) {
       setError('Network error. Please try again.');
@@ -153,9 +188,9 @@ export default function LoginPage() {
             </div>
             <h1 className="text-2xl font-bold text-center mb-2">Secure Login</h1>
             <p className="text-red-100 text-center text-sm">
-              {step === 'email'
-                ? 'Enter your email to receive a one-time password'
-                : 'Enter the 6-digit code sent to your email'}
+              {step === 'phone'
+                ? 'Enter phone number or email to receive a one-time password'
+                : 'Enter the 6-digit verification code'}
             </p>
           </div>
 
@@ -174,11 +209,30 @@ export default function LoginPage() {
               </div>
             )}
 
-            {step === 'email' ? (
-              <form onSubmit={handleEmailSubmit} className="space-y-6">
+            {step === 'phone' ? (
+              <form onSubmit={handlePhoneSubmit} className="space-y-6">
+                <div>
+                  <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
+                    Phone Number (WhatsApp) — optional
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Mail className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <input
+                      type="tel"
+                      id="phone"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 outline-none"
+                      placeholder="e.g., 9198XXXXXXXX"
+                      disabled={loading}
+                    />
+                  </div>
+                </div>
                 <div>
                   <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                    Email Address
+                    Email — optional
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -190,8 +244,7 @@ export default function LoginPage() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 outline-none"
-                      placeholder="you@example.com"
-                      required
+                      placeholder="e.g., user@example.com"
                       disabled={loading}
                     />
                   </div>
@@ -235,7 +288,7 @@ export default function LoginPage() {
                     ))}
                   </div>
                   <p className="text-center text-sm text-gray-600">
-                    Code sent to <span className="font-medium text-gray-900">{email}</span>
+                    Code sent to <span className="font-medium text-gray-900">{phone}</span>
                   </p>
                 </div>
 
@@ -261,7 +314,7 @@ export default function LoginPage() {
                     disabled={loading}
                     className="w-full text-gray-600 py-2 px-4 rounded-lg font-medium hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-300 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Use Different Email
+                    Use Different Number
                   </button>
 
                   <div className="text-center">

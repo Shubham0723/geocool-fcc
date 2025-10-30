@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Button } from './ui/button';
+import Image from 'next/image';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { X, Download, ExternalLink } from 'lucide-react';
 
@@ -24,10 +25,12 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   const handleDownload = () => {
+    const nameFromUrl = documentUrl.split('?')[0].split('/').pop() || `${documentType}_document`;
+    const fileName = documentName || nameFromUrl;
+    const api = `/api/download?url=${encodeURIComponent(documentUrl)}&name=${encodeURIComponent(fileName)}`;
     const link = document.createElement('a');
-    link.href = documentUrl;
-    link.download = documentName || `${documentType}_document.pdf`;
-    link.target = '_blank';
+    link.href = api;
+    link.download = fileName;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -37,27 +40,27 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
     window.open(documentUrl, '_blank');
   };
 
-  const isPdf = documentUrl.toLowerCase().includes('.pdf') || 
-                documentUrl.includes('pdf') ||
-                documentType.toLowerCase().includes('pdf');
+  const isPdf = documentUrl.toLowerCase().includes('.pdf') ||
+    documentUrl.includes('pdf') ||
+    documentType.toLowerCase().includes('pdf');
 
   // Check if file type is previewable in browser
-  const isImage = documentType.toLowerCase().includes('image') || 
-                  documentType.toLowerCase().includes('jpeg') ||
-                  documentType.toLowerCase().includes('jpg') ||
-                  documentType.toLowerCase().includes('png') ||
-                  documentType.toLowerCase().includes('gif') ||
-                  documentType.toLowerCase().includes('webp');
-  
+  const isImage = documentType.toLowerCase().includes('image') ||
+    documentType.toLowerCase().includes('jpeg') ||
+    documentType.toLowerCase().includes('jpg') ||
+    documentType.toLowerCase().includes('png') ||
+    documentType.toLowerCase().includes('gif') ||
+    documentType.toLowerCase().includes('webp');
+
   // Check if it's an Office document that can be previewed
   const isOfficeDoc = documentType.toLowerCase().includes('wordprocessingml') ||
-                      documentType.toLowerCase().includes('spreadsheetml') ||
-                      documentType.toLowerCase().includes('word') ||
-                      documentType.toLowerCase().includes('excel') ||
-                      documentType.toLowerCase().includes('docx') ||
-                      documentType.toLowerCase().includes('xlsx') ||
-                      documentType.toLowerCase().includes('pptx');
-  
+    documentType.toLowerCase().includes('spreadsheetml') ||
+    documentType.toLowerCase().includes('word') ||
+    documentType.toLowerCase().includes('excel') ||
+    documentType.toLowerCase().includes('docx') ||
+    documentType.toLowerCase().includes('xlsx') ||
+    documentType.toLowerCase().includes('pptx');
+
   const isPreviewable = isPdf || isImage || isOfficeDoc;
 
   return (
@@ -98,7 +101,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
             </div>
           </div>
         </DialogHeader>
-        
+
         <div className="flex-1 overflow-hidden">
           {!isPreviewable ? (
             // Non-previewable files (DOCX, etc.) - show download option
@@ -158,16 +161,19 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
           ) : (
             <div className="w-full h-[70vh] border rounded-lg overflow-hidden">
               {isImage ? (
-                <img
-                  src={documentUrl}
-                  alt={`${documentType} Document`}
-                  className="w-full h-full object-contain"
-                  onLoad={() => setIsLoading(false)}
-                  onError={() => {
-                    setError('Unable to load image');
-                    setIsLoading(false);
-                  }}
-                />
+                <div className="relative w-full h-full">
+                  <Image
+                    src={documentUrl}
+                    alt={`${documentType} Document`}
+                    fill
+                    className="object-contain"
+                    onLoad={() => setIsLoading(false)}
+                    onError={() => {
+                      setError('Unable to load image');
+                      setIsLoading(false);
+                    }}
+                  />
+                </div>
               ) : isOfficeDoc ? (
                 // Use Office Online Viewer for DOCX, XLSX, etc.
                 <iframe

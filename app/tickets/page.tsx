@@ -25,6 +25,9 @@ export default function OperationsPage() {
   const [operationTypes, setOperationTypes] = useState<{ _id: string, Type_name: string }[]>([]);
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [selectedType, setSelectedType] = useState<string>('all');
+  const [visibleCount, setVisibleCount] = useState<number>(15);
+  const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
+  const loadMoreSentinelRef = (useState<HTMLDivElement | null>(null))[0];
   const { toast } = useToast();
 
   const fetchOperations = useCallback(async () => {
@@ -91,6 +94,30 @@ export default function OperationsPage() {
     fetchOperationTypes();
   }, [fetchOperations, fetchVehicles, fetchOperationTypes]);
 
+  // Reset visible count when filters change
+  useEffect(() => {
+    setVisibleCount(15);
+  }, [selectedStatus, selectedType]);
+
+  // Intersection Observer to auto-increase visibleCount when bottom sentinel enters view
+  useEffect(() => {
+    const sentinel = document.getElementById('tickets-load-more-sentinel');
+    if (!sentinel) return;
+    const observer = new IntersectionObserver((entries) => {
+      const entry = entries[0];
+      if (entry.isIntersecting) {
+        setIsLoadingMore(true);
+        // Small timeout to avoid rapid increments
+        setTimeout(() => {
+          setVisibleCount((prev) => prev + 15);
+          setIsLoadingMore(false);
+        }, 150);
+      }
+    }, { rootMargin: '200px 0px' });
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [operations, selectedStatus, selectedType]);
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'pending':
@@ -126,6 +153,8 @@ export default function OperationsPage() {
       return statusMatch && typeMatch;
     }
   );
+
+  const visibleOperations = filteredOperations.slice(0, visibleCount);
 
   // CSV export (opens in Excel) for currently displayed rows
   const csvEscape = (value: unknown) => {
@@ -262,7 +291,7 @@ export default function OperationsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredOperations.map((operation, index) => (
+                  {visibleOperations.map((operation, index) => (
                     <tr
                       key={operation._id?.toString() || index}
                       className="border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer"
@@ -297,8 +326,24 @@ export default function OperationsPage() {
                       <td className="py-3 px-4">{getStatusBadge(operation.status)}</td>
                     </tr>
                   ))}
+                  {/* Loading indicator row */}
+                  {isLoadingMore && (
+                    <tr>
+                      <td colSpan={6} className="py-4 text-center text-gray-500">Loading more…</td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
+              {/* Sentinel for intersection observer */}
+              <div id="tickets-load-more-sentinel" className="h-8" />
+              {/* Fallback manual load more */}
+              {visibleCount < filteredOperations.length && (
+                <div className="flex justify-center py-4">
+                  <Button variant="outline" onClick={() => setVisibleCount((v) => v + 15)}>
+                    Load more
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </CardContent>

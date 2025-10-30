@@ -19,21 +19,30 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    let email = '';
+    let identifier = '';
     try {
       const decoded = Buffer.from(authCookie.value, 'base64').toString('utf8');
-      email = decoded.split(':')[0]?.toLowerCase() || '';
-    } catch {}
+      identifier = decoded.split(':')[0]?.toLowerCase() || '';
+    } catch { }
 
-    if (!email) {
+    if (!identifier) {
       return NextResponse.json(
         { success: false, message: 'Invalid auth token' },
         { status: 401 }
       );
     }
 
-    // Find user and role by email
-    const user = await usersCollection.findOne({ email, isActive: true });
+    // Find user by email or phone depending on identifier
+    let user = null as any;
+    if (identifier.includes('@')) {
+      user = await usersCollection.findOne({ email: identifier, isActive: true });
+    } else {
+      const digits = String(identifier).replace(/\D/g, '');
+      const phoneNum = Number(digits);
+      if (Number.isFinite(phoneNum)) {
+        user = await usersCollection.findOne({ phone: phoneNum, isActive: true });
+      }
+    }
     if (!user) {
       return NextResponse.json(
         { success: false, message: 'User not found' },
@@ -43,15 +52,8 @@ export async function GET(request: NextRequest) {
 
     const role: string = (user as any).role || 'user';
 
-    // Build amount filter based on role using totalInvAmountPayable
-    let amountFilter: any = {};
-    if (role === 'user') {
-      amountFilter = { totalInvAmountPayable: { $gte: 0, $lte: 2000 } };
-    } else if (role === 'admin') {
-      amountFilter = { totalInvAmountPayable: { $gt: 2000, $lte: 5000 } };
-    } else if (role === 'superadmin') {
-      amountFilter = { totalInvAmountPayable: { $gt: 5000 } };
-    }
+    // Show all operations to every authenticated user
+    const amountFilter: any = {};
 
     const operations = await operationsCollection
       .find(amountFilter)
@@ -125,13 +127,13 @@ export async function POST(request: NextRequest) {
     const spareAfterDiscount = spareWithoutTax - spareDiscountAmount;
     const spareGSTAmount = spareAfterDiscount * gstOnPartsRate;
     const spareWithGST = spareAfterDiscount + spareGSTAmount;
-    
+
     // Calculate labour: First apply discount as percentage, then add GST on discounted amount
     const labourDiscountAmount = labour * (discountLabour / 100);
     const labourAfterDiscount = labour - labourDiscountAmount;
     const labourGSTAmount = labourAfterDiscount * gstOnLabourRate;
     const labourWithGST = labourAfterDiscount + labourGSTAmount;
-    
+
     // Calculate totals
     const totalWithGST = amount + spareWithGST + labourWithGST + outsideLabour;
     const totalWithoutGST = amount + spareWithoutTax + labour + outsideLabour;
@@ -144,12 +146,12 @@ export async function POST(request: NextRequest) {
       status: 'pending',
       invoiceBill: body.invoiceBill || null,
       formType: body.formType || '',
-      
+
       // Core Operation Details
       operationType: body.operationType,
       amount: amount,
       description: body.description || '',
-      
+
       // Common Fields for both AC Maintenance and Vehicle Maintenance
       dateSendToWS: body.dateSendToWS || '',
       workshop: body.workshop || '',
@@ -158,16 +160,16 @@ export async function POST(request: NextRequest) {
       vehReadyDateFromWS: body.vehReadyDateFromWS || '',
       invoiceNo: body.invoiceNo || '',
       invoiceDate: body.invoiceDate || '',
-      
+
       // AC Maintenance Specific Fields
       acUnit: body.acUnit || '',
       engineHrs: engineHrs,
       advisorNo: body.advisorNo || '',
-      
+
       // Vehicle Maintenance Specific Fields
       serviceKM: serviceKM,
       workOrderNo: body.workOrderNo || '',
-      
+
       // Financial Details
       spare: body.spare || '',
       spareWithoutTax: spareWithoutTax,
@@ -177,16 +179,16 @@ export async function POST(request: NextRequest) {
       gstOnParts: body.gstOnParts || '',
       discountLabour: discountLabour,
       gstOnLabour: body.gstOnLabour || '',
-      
+
       // Calculated Fields
       totalInvAmountPayable: totalWithGST,
       totalAmountWithDiscountButWithoutTax: totalAmountWithDiscountButWithoutTax,
       labourWithGST: labourWithGST,
-      
+
       // Additional Fields
       remark: body.remark || '',
       jobType: body.jobType || '',
-      
+
       // System Fields
       createdAt: new Date(),
       updatedAt: new Date(),

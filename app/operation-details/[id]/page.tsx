@@ -4,6 +4,7 @@ import { useParams } from "next/navigation";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { DocumentPreview } from '@/components/DocumentPreview';
+import { useToast } from '@/hooks/use-toast';
 
 // Types
 interface Operation {
@@ -38,6 +39,7 @@ const OperationDetailsPage = () => {
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [statusUpdating, setStatusUpdating] = useState(false);
+  const { toast } = useToast();
 
   // Fetch Operation
   useEffect(() => {
@@ -93,7 +95,14 @@ const OperationDetailsPage = () => {
         body: JSON.stringify({ status: newStatus })
       });
       const data = await res.json();
-      if (res.ok) setOperation({ ...operation, status: newStatus });
+      if (res.ok) {
+        setOperation({ ...operation, status: newStatus });
+      } else if (res.status === 403) {
+        toast({
+          title: "Insufficient permissions for this operation",
+          description: typeof data?.message === 'string' ? data.message : undefined,
+        });
+      }
     } finally {
       setStatusUpdating(false);
     }
@@ -103,7 +112,7 @@ const OperationDetailsPage = () => {
   return (
     <div className="max-w-6xl mx-auto p-6 bg-white rounded-lg shadow mt-10">
       <h1 className="text-2xl font-bold mb-4">Operation Details</h1>
-      
+
       {/* Status and Basic Info */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         <div className="col-span-1 md:col-span-2 space-y-2">

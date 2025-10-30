@@ -840,6 +840,7 @@ export default function OperationPage() {
                                   <SelectValue placeholder="Select GST percentage" />
                                 </SelectTrigger>
                                 <SelectContent>
+                                  <SelectItem value="5">5%</SelectItem>
                                   <SelectItem value="18%">18%</SelectItem>
                                   <SelectItem value="28%">28%</SelectItem>
                                 </SelectContent>
@@ -899,6 +900,7 @@ export default function OperationPage() {
                                   <SelectValue placeholder="Select GST percentage" />
                                 </SelectTrigger>
                                 <SelectContent>
+                                  <SelectItem value="5%">5%</SelectItem>
                                   <SelectItem value="18%">18%</SelectItem>
                                   <SelectItem value="28%">28%</SelectItem>
                                 </SelectContent>
@@ -1361,6 +1363,7 @@ export default function OperationPage() {
                                   <SelectValue placeholder="Select GST percentage" />
                                 </SelectTrigger>
                                 <SelectContent>
+                                  <SelectItem value='5%'>5%</SelectItem>
                                   <SelectItem value="18%">18%</SelectItem>
                                   <SelectItem value="28%">28%</SelectItem>
                                 </SelectContent>
@@ -1420,6 +1423,7 @@ export default function OperationPage() {
                                   <SelectValue placeholder="Select GST percentage" />
                                 </SelectTrigger>
                                 <SelectContent>
+                                  <SelectItem value='5%'>5%</SelectItem>
                                   <SelectItem value="18%">18%</SelectItem>
                                   <SelectItem value="28%">28%</SelectItem>
                                 </SelectContent>

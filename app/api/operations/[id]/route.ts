@@ -30,10 +30,10 @@ export async function PUT(
     const operationsCollection = db.collection('operations');
     const usersCollection = db.collection('users');
 
-    // Get user email from auth cookie
+    // Get user identifier (email or phone) from auth cookie
     const cookieStore = cookies();
     const authToken = cookieStore.get('auth-token');
-    
+
     if (!authToken) {
       return NextResponse.json(
         { success: false, message: 'Authentication required' },
@@ -41,28 +41,40 @@ export async function PUT(
       );
     }
 
-    // Decode cookie to extract email (stored as base64 `${email}:${timestamp}`)
-    let emailFromCookie = '';
+    // Decode cookie to extract identifier (stored as base64 `${emailOrPhone}:${timestamp}`)
+    let identifierFromCookie = '';
     try {
       const decoded = Buffer.from(authToken.value, 'base64').toString('utf8');
-      emailFromCookie = decoded.split(':')[0]?.toLowerCase() || '';
-    } catch {}
+      identifierFromCookie = decoded.split(':')[0]?.toLowerCase() || '';
+    } catch { }
 
 
 
-    
-    if (!emailFromCookie) {
+
+    if (!identifierFromCookie) {
       return NextResponse.json(
         { success: false, message: 'Invalid auth token' },
         { status: 401 }
       );
     }
 
-    // Get user by email
-    const user = await usersCollection.findOne({ 
-      email: emailFromCookie,
-      isActive: true 
-    });
+    // Get user by email (if identifier contains '@') or by phone (digits only)
+    let user = null as any;
+    if (identifierFromCookie.includes('@')) {
+      user = await usersCollection.findOne({
+        email: identifierFromCookie,
+        isActive: true
+      });
+    } else {
+      const digits = String(identifierFromCookie).replace(/\D/g, '');
+      const phoneNum = Number(digits);
+      if (Number.isFinite(phoneNum)) {
+        user = await usersCollection.findOne({
+          phone: phoneNum,
+          isActive: true
+        });
+      }
+    }
 
     if (!user) {
       return NextResponse.json(

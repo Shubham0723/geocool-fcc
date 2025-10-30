@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Button } from './ui/button';
+import Image from 'next/image';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { X, Download, ExternalLink, Calendar } from 'lucide-react';
 
@@ -42,10 +43,12 @@ export const MultiDocumentPreviewModal: React.FC<MultiDocumentPreviewModalProps>
   const documentUrl = selectedDocument?.[imageFieldName] as string;
 
   const handleDownload = (url: string, index: number) => {
+    const nameFromUrl = url.split('?')[0].split('/').pop() || `${documentType}_document_${index + 1}`;
+    const fileName = nameFromUrl;
+    const api = `/api/download?url=${encodeURIComponent(url)}&name=${encodeURIComponent(fileName)}`;
     const link = document.createElement('a');
-    link.href = url;
-    link.download = `${documentType}_document_${index + 1}.pdf`;
-    link.target = '_blank';
+    link.href = api;
+    link.download = fileName;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -100,7 +103,7 @@ export const MultiDocumentPreviewModal: React.FC<MultiDocumentPreviewModalProps>
             </div>
           </div>
         </DialogHeader>
-        
+
         <div className="flex gap-4 h-[70vh]">
           {/* Document List Sidebar */}
           <div className="w-1/3 border-r pr-4 overflow-y-auto">
@@ -110,15 +113,14 @@ export const MultiDocumentPreviewModal: React.FC<MultiDocumentPreviewModalProps>
                 const url = doc[imageFieldName] as string;
                 const isSelected = index === selectedDocumentIndex;
                 const isPdfFile = isPdf(url);
-                
+
                 return (
                   <div
                     key={index}
-                    className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                      isSelected 
-                        ? 'border-blue-500 bg-blue-50' 
-                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                    }`}
+                    className={`p-3 border rounded-lg cursor-pointer transition-colors ${isSelected
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                      }`}
                     onClick={() => setSelectedDocumentIndex(index)}
                   >
                     <div className="flex items-center gap-3">
@@ -126,15 +128,12 @@ export const MultiDocumentPreviewModal: React.FC<MultiDocumentPreviewModalProps>
                         {isPdfFile ? (
                           <div className="text-red-600 font-bold text-xs">PDF</div>
                         ) : (
-                          <img
+                          <Image
                             src={url}
                             alt={`${documentType} ${index + 1}`}
+                            width={48}
+                            height={48}
                             className="w-full h-full object-cover rounded"
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement;
-                              target.style.display = 'none';
-                              target.nextElementSibling?.classList.remove('hidden');
-                            }}
                           />
                         )}
                         <div className="hidden text-gray-500 text-xs">IMG</div>
@@ -221,16 +220,19 @@ export const MultiDocumentPreviewModal: React.FC<MultiDocumentPreviewModalProps>
               </div>
             ) : (
               <div className="w-full h-full border rounded-lg overflow-hidden">
-                <img
-                  src={documentUrl}
-                  alt={`${documentType} Document`}
-                  className="w-full h-full object-contain"
-                  onLoad={() => setIsLoading(false)}
-                  onError={() => {
-                    setError('Unable to load image');
-                    setIsLoading(false);
-                  }}
-                />
+                <div className="relative w-full h-full">
+                  <Image
+                    src={documentUrl}
+                    alt={`${documentType} Document`}
+                    fill
+                    className="object-contain"
+                    onLoad={() => setIsLoading(false)}
+                    onError={() => {
+                      setError('Unable to load image');
+                      setIsLoading(false);
+                    }}
+                  />
+                </div>
               </div>
             )}
           </div>
