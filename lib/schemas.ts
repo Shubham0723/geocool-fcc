@@ -194,7 +194,8 @@ export interface Operation {
   gstOnParts: '18%' | '28%' | ''; // GST rate on parts
   discountLabour?: number; // Discount amount on labour
   gstOnLabour: '18%' | '28%' | ''; // GST rate on labour
-
+  spareWith18GST: number;
+  spareWith28GST: number;
   // Calculated Fields
   totalInvAmountPayable?: number; // Calculated total invoice amount payable (with all taxes)
   totalAmountWithDiscountButWithoutTax?: number; // Calculated total (Spare After Discount + Labour After Discount)

@@ -172,4 +172,6 @@ export interface Operation {
   totalInvAmountPayable?: number;
   labourWithGST?: number;
   labour?: number;
+  spareWith18GST?: number;
+  spareWith28GST?: number;
 }

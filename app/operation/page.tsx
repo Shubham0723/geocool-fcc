@@ -77,6 +77,8 @@ export default function OperationPage() {
     totalAmountWithDiscountButWithoutTax: '',
     remark: '',
     jobType: '',
+    spareWith18GST: '', // new
+    spareWith28GST: '', // new
   });
   // New state for dynamic types
   const [operationTypes, setOperationTypes] = useState<{ _id: string, Type_name: string }[]>([]);
@@ -196,7 +198,7 @@ export default function OperationPage() {
     setAddingType(false);
   };
 
-  const calculateGST = (amount: number) => {
+  /*const calculateGST = (amount: number) => {
     const gstRate = 0.18;
     const withoutGST = amount / (1 + gstRate);
     const gstAmount = amount - withoutGST;
@@ -205,64 +207,70 @@ export default function OperationPage() {
       withoutGST: withoutGST,
       gstAmount: gstAmount,
     };
-  };
+  };*/
 
   const calculateTotalAmounts = () => {
-    const originalAmount = parseFloat(operationData.amount) || 0;
     const spareWithoutTax = parseFloat(operationData.spareWithoutTax) || 0;
-    const labour = parseFloat(operationData.labour) || 0;
-    const outsideLabour = parseFloat(operationData.outsideLabour) || 0;
-    const discountLabour = parseFloat(operationData.discountLabour) || 0;
+    const discountOnParts = parseFloat(operationData.discountOnParts) || 0;
+    const gstOnParts = operationData.gstOnParts === '18%' ? 0.18 : operationData.gstOnParts === '28%' ? 0.28 : operationData.gstOnParts === '5%' ? 0.05 : 0;
 
-    // Get percentage values
-    const spareRate = operationData.spare === '18%' ? 0.18 : operationData.spare === '28%' ? 0.28 : 0;
-    const discountOnPartsRate = operationData.discountOnParts === '18%' ? 0.18 : operationData.discountOnParts === '28%' ? 0.28 : 0;
-    const customGstOnParts1 = parseFloat(operationData.gstOnPartsCustom1) || 0;
-    const customGstOnParts2 = parseFloat(operationData.gstOnPartsCustom2) || 0;
-    const gstOnPartsRate = (customGstOnParts1 || customGstOnParts2) ? (customGstOnParts1 + customGstOnParts2) / 100 : (operationData.gstOnParts === '18%' ? 0.18 : operationData.gstOnParts === '28%' ? 0.28 : 0);
-    const customGstOnLabour1 = parseFloat(operationData.gstOnLabourCustom1) || 0;
-    const customGstOnLabour2 = parseFloat(operationData.gstOnLabourCustom2) || 0;
-    const gstOnLabourRate = (customGstOnLabour1 || customGstOnLabour2) ? (customGstOnLabour1 + customGstOnLabour2) / 100 : (operationData.gstOnLabour === '18%' ? 0.18 : operationData.gstOnLabour === '28%' ? 0.28 : 0);
-
-    // Calculate spare: First apply discount, then add GST on discounted amount
-    const spareDiscountAmount = spareWithoutTax * discountOnPartsRate;
+    const spareDiscountAmount = spareWithoutTax * (discountOnParts / 100);
     const spareAfterDiscount = spareWithoutTax - spareDiscountAmount;
-    const spareGSTAmount = spareAfterDiscount * gstOnPartsRate;
+    const spareGSTAmount = spareAfterDiscount * gstOnParts;
     const spareWithGST = spareAfterDiscount + spareGSTAmount;
 
-    // Calculate labour: First apply discount (as %), then add GST on discounted amount
-    const labourDiscountAmount = labour * (discountLabour / 100);
-    const labourAfterDiscount = labour - labourDiscountAmount;
-    const labourGSTAmount = labourAfterDiscount * gstOnLabourRate;
+    const spare18Value = parseFloat(operationData.spareWith18GST) || 0;
+    const spare28Value = parseFloat(operationData.spareWith28GST) || 0;
+    // LABOUR GST LOGIC:
+    const discountLabour = parseFloat(operationData.discountLabour) || 0;
+    const gstOnLabour = operationData.gstOnLabour === '18%' ? 0.18 : operationData.gstOnLabour === '28%' ? 0.28 : operationData.gstOnLabour === '5%' ? 0.05 : 0;
+    const labour = parseFloat(operationData.labour) || 0;
+    const labourAfterDiscount = labour - (labour * (discountLabour / 100));
+    const labourGSTAmount = labourAfterDiscount * gstOnLabour;
     const labourWithGST = labourAfterDiscount + labourGSTAmount;
 
-    // Outside labour (no GST applied)
-    const outsideLabourWithGST = outsideLabour;
+    const spare18AfterDiscount = spare18Value - (spare18Value * (discountOnParts / 100));
+    const spare28AfterDiscount = spare28Value - (spare28Value * (discountOnParts / 100));
+    const spare18WithGST = spare18AfterDiscount * 1.18;
+    const spare28WithGST = spare28AfterDiscount * 1.28;
 
-    // Calculate totals
-    const totalWithGST = originalAmount + spareWithGST + labourWithGST + outsideLabourWithGST;
-    const totalWithoutGST = originalAmount + spareWithoutTax + labour + outsideLabour;
-    const totalDiscountAmount = spareDiscountAmount + discountLabour;
+    // Define outsideLabour as a number (not defined before)
+    const outsideLabour = parseFloat(operationData.outsideLabour) || 0;
+    const outsideLabourDiscountAmount = outsideLabour * (discountLabour / 100);
+    const outsideLabourAfterDiscount = outsideLabour - outsideLabourDiscountAmount;
+    const outsideLabourGSTAmount = outsideLabourAfterDiscount * gstOnLabour;
+    const outsideLabourWithGST = outsideLabourAfterDiscount + outsideLabourGSTAmount;
 
-    // Total Inv Amount Payable = all amounts with GST
-    const totalInvAmountPayable = totalWithGST;
+    const totalInvAmountPayable =
+      spareWithGST +
+      spare18WithGST +
+      spare28WithGST +
+      labourWithGST +
+      outsideLabourWithGST;
 
-    // Total Amount with Discount but Without Tax = Spare After Discount + Labour After Discount
-    const totalAmountWithDiscountButWithoutTax = spareAfterDiscount + labourAfterDiscount;
+    const totalAmountWithDiscountButWithoutTax =
+      spareAfterDiscount +
+      spare18AfterDiscount +
+      spare28AfterDiscount +
+      labourAfterDiscount +
+      outsideLabourAfterDiscount;
 
     return {
       spareDiscountAmount: spareDiscountAmount.toFixed(2),
       spareAfterDiscount: spareAfterDiscount.toFixed(2),
       spareGSTAmount: spareGSTAmount.toFixed(2),
       spareWithGST: spareWithGST.toFixed(2),
-      labourDiscountAmount: labourDiscountAmount.toFixed(2),
+      spare18AfterDiscount: spare18AfterDiscount.toFixed(2),
+      spare28AfterDiscount: spare28AfterDiscount.toFixed(2),
+      spare18WithGST: spare18WithGST.toFixed(2),
+      spare28WithGST: spare28WithGST.toFixed(2),
       labourAfterDiscount: labourAfterDiscount.toFixed(2),
       labourGSTAmount: labourGSTAmount.toFixed(2),
       labourWithGST: labourWithGST.toFixed(2),
+      outsideLabourDiscountAmount: outsideLabourDiscountAmount.toFixed(2),
+      outsideLabourAfterDiscount: outsideLabourAfterDiscount.toFixed(2),
+      outsideLabourGSTAmount: outsideLabourGSTAmount.toFixed(2),
       outsideLabourWithGST: outsideLabourWithGST.toFixed(2),
-      totalWithGST: totalWithGST.toFixed(2),
-      totalWithoutGST: totalWithoutGST.toFixed(2),
-      totalDiscountAmount: totalDiscountAmount.toFixed(2),
       totalInvAmountPayable: totalInvAmountPayable.toFixed(2),
       totalAmountWithDiscountButWithoutTax: totalAmountWithDiscountButWithoutTax.toFixed(2),
     };
@@ -347,6 +355,8 @@ export default function OperationPage() {
           gstOnParts: operationData.gstOnParts,
           discountLabour: operationData.discountLabour,
           gstOnLabour: operationData.gstOnLabour,
+          spareWith18GST: operationData.spareWith18GST,
+          spareWith28GST: operationData.spareWith28GST,
           // Additional fields
           remark: operationData.remark,
           jobType: operationData.jobType,
@@ -390,6 +400,8 @@ export default function OperationPage() {
           totalAmountWithDiscountButWithoutTax: '',
           remark: '',
           jobType: '',
+          spareWith18GST: '', // new for reset
+          spareWith28GST: '', // new for reset
         });
         setFile(null); setFileUrlPreview(null);
         setFormType('');
@@ -727,27 +739,6 @@ export default function OperationPage() {
                           {/* Spare and Spare Without Tax */}
                           <div className="flex gap-8 mb-8">
                             <div className="space-y-3">
-                              <Label htmlFor="spare" className="text-sm font-medium">Spare</Label>
-                              <Select
-                                value={operationData.spare}
-                                onValueChange={(value) =>
-                                  setOperationData({
-                                    ...operationData,
-                                    spare: value,
-                                  })
-                                }
-                              >
-                                <SelectTrigger className="h-10 w-64">
-                                  <SelectValue placeholder="Select spare percentage" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="18%">18%</SelectItem>
-                                  <SelectItem value="28%">28%</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-
-                            <div className="space-y-3">
                               <Label htmlFor="spareWithoutTax" className="text-sm font-medium">Spare Without Tax</Label>
                               <Input
                                 id="spareWithoutTax"
@@ -760,6 +751,32 @@ export default function OperationPage() {
                                     spareWithoutTax: e.target.value,
                                   })
                                 }
+                                className="h-10 w-64 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Spare with 18% GST and 28% GST */}
+                          <div className="flex gap-8 mb-8">
+                            <div className="space-y-3">
+                              <Label htmlFor="spareWith18GST" className="text-sm font-medium">Spare with 18% GST</Label>
+                              <Input
+                                id="spareWith18GST"
+                                type="number"
+                                placeholder="Enter Spare with 18% GST"
+                                value={operationData.spareWith18GST}
+                                onChange={(e) => setOperationData({ ...operationData, spareWith18GST: e.target.value })}
+                                className="h-10 w-64 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
+                              />
+                            </div>
+                            <div className="space-y-3">
+                              <Label htmlFor="spareWith28GST" className="text-sm font-medium">Spare with 28% GST</Label>
+                              <Input
+                                id="spareWith28GST"
+                                type="number"
+                                placeholder="Enter Spare with 28% GST"
+                                value={operationData.spareWith28GST}
+                                onChange={(e) => setOperationData({ ...operationData, spareWith28GST: e.target.value })}
                                 className="h-10 w-64 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
                               />
                             </div>
@@ -926,48 +943,38 @@ export default function OperationPage() {
                             </div>
                           </div>
 
-                          {/* GST Amounts Display */}
+                          {/* GST Amounts Display 
                           {(operationData.spareWithoutTax || operationData.labour || operationData.outsideLabour) && (
                             <div className="bg-blue-50 p-4 rounded-lg border">
                               <h5 className="text-lg font-semibold mb-3 text-blue-800">GST Calculations</h5>
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                {operationData.spareWithoutTax && operationData.discountOnParts && (
+                                {parseFloat(operationData.spareWith18GST) > 0 && (
                                   <div className="space-y-2">
-                                    <Label className="text-sm font-medium text-blue-700">Spare Discount Amount</Label>
-                                    <div className="text-lg font-semibold text-blue-900">₹{calculateTotalAmounts().spareDiscountAmount}</div>
-                                    <div className="text-sm text-blue-600">Spare After Discount: ₹{calculateTotalAmounts().spareAfterDiscount}</div>
+                                    <Label className="text-sm font-medium text-blue-700">Spare 18% After Discount</Label>
+                                    <div className="text-lg font-semibold text-blue-900">₹{calculateTotalAmounts().spare18AfterDiscount}</div>
+                                    <div className="text-sm text-blue-600">Spare 18% With GST: ₹{calculateTotalAmounts().spare18WithGST}</div>
                                   </div>
                                 )}
 
-                                {operationData.spareWithoutTax && operationData.gstOnParts && (
+                                {parseFloat(operationData.spareWith28GST) > 0 && (
                                   <div className="space-y-2">
-                                    <Label className="text-sm font-medium text-blue-700">Spare GST Amount</Label>
-                                    <div className="text-lg font-semibold text-blue-900">₹{calculateTotalAmounts().spareGSTAmount}</div>
-                                    <div className="text-sm text-blue-600">Spare with GST: ₹{calculateTotalAmounts().spareWithGST}</div>
+                                    <Label className="text-sm font-medium text-blue-700">Spare 28% After Discount</Label>
+                                    <div className="text-lg font-semibold text-blue-900">₹{calculateTotalAmounts().spare28AfterDiscount}</div>
+                                    <div className="text-sm text-blue-600">Spare 28% With GST: ₹{calculateTotalAmounts().spare28WithGST}</div>
                                   </div>
                                 )}
 
-                                {operationData.labour && operationData.discountLabour && (
+                                {parseFloat(operationData.labour) > 0 && (
                                   <div className="space-y-2">
-                                    <Label className="text-sm font-medium text-blue-700">Labour Discount Amount</Label>
-                                    <div className="text-lg font-semibold text-blue-900">₹{calculateTotalAmounts().labourDiscountAmount}</div>
-                                    <div className="text-sm text-blue-600">Labour After Discount: ₹{calculateTotalAmounts().labourAfterDiscount}</div>
+                                    <Label className="text-sm font-medium text-blue-700">Labour After Discount</Label>
+                                    <div className="text-lg font-semibold text-blue-900">₹{calculateTotalAmounts().labourAfterDiscount}</div>
                                   </div>
                                 )}
 
-                                {operationData.labour && operationData.gstOnLabour && (
+                                {parseFloat(operationData.outsideLabour) > 0 && (
                                   <div className="space-y-2">
-                                    <Label className="text-sm font-medium text-blue-700">Labour GST Amount</Label>
-                                    <div className="text-lg font-semibold text-blue-900">₹{calculateTotalAmounts().labourGSTAmount}</div>
-                                    <div className="text-sm text-blue-600">Labour with GST: ₹{calculateTotalAmounts().labourWithGST}</div>
-                                  </div>
-                                )}
-
-                                {operationData.outsideLabour && (
-                                  <div className="space-y-2">
-                                    <Label className="text-sm font-medium text-blue-700">Outside Labour</Label>
-                                    <div className="text-lg font-semibold text-blue-900">₹{calculateTotalAmounts().outsideLabourWithGST}</div>
-                                    <div className="text-sm text-blue-600">(No GST applied)</div>
+                                    <Label className="text-sm font-medium text-blue-700">Outside Labour After Discount</Label>
+                                    <div className="text-lg font-semibold text-blue-900">₹{calculateTotalAmounts().outsideLabourAfterDiscount}</div>
                                   </div>
                                 )}
                               </div>
@@ -975,18 +982,18 @@ export default function OperationPage() {
                               <div className="mt-4 pt-3 border-t border-blue-200">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                   <div className="space-y-1">
-                                    <Label className="text-sm font-medium text-blue-700">Total Without GST</Label>
-                                    <div className="text-lg font-semibold text-blue-900">₹{calculateTotalAmounts().totalWithoutGST}</div>
+                                    <Label className="text-sm font-medium text-blue-700">Total Inv Amount Payable</Label>
+                                    <div className="text-lg font-semibold text-blue-900">₹{calculateTotalAmounts().totalInvAmountPayable}</div>
                                   </div>
                                   <div className="space-y-1">
-                                    <Label className="text-sm font-medium text-blue-700">Total With GST</Label>
-                                    <div className="text-lg font-semibold text-blue-900">₹{calculateTotalAmounts().totalWithGST}</div>
+                                    <Label className="text-sm font-medium text-blue-700">Total Amount with Discount but Without Tax</Label>
+                                    <div className="text-lg font-semibold text-blue-900">₹{calculateTotalAmounts().totalAmountWithDiscountButWithoutTax}</div>
                                   </div>
                                 </div>
                               </div>
                             </div>
                           )}
-
+                           */}
                           {/* Total Amount Fields */}
                           <div className="flex gap-12 mb-8">
                             <div className="space-y-3">
@@ -1250,27 +1257,6 @@ export default function OperationPage() {
                           {/* Spare and Spare Without Tax */}
                           <div className="flex gap-8 mb-8">
                             <div className="space-y-3">
-                              <Label htmlFor="spare" className="text-sm font-medium">Spare</Label>
-                              <Select
-                                value={operationData.spare}
-                                onValueChange={(value) =>
-                                  setOperationData({
-                                    ...operationData,
-                                    spare: value,
-                                  })
-                                }
-                              >
-                                <SelectTrigger className="h-10 w-64">
-                                  <SelectValue placeholder="Select spare percentage" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="18%">18%</SelectItem>
-                                  <SelectItem value="28%">28%</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-
-                            <div className="space-y-3">
                               <Label htmlFor="spareWithoutTax" className="text-sm font-medium">Spare Without Tax</Label>
                               <Input
                                 id="spareWithoutTax"
@@ -1283,6 +1269,32 @@ export default function OperationPage() {
                                     spareWithoutTax: e.target.value,
                                   })
                                 }
+                                className="h-10 w-64 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Spare with 18% GST and 28% GST */}
+                          <div className="flex gap-8 mb-8">
+                            <div className="space-y-3">
+                              <Label htmlFor="spareWith18GST" className="text-sm font-medium">Spare with 18% GST</Label>
+                              <Input
+                                id="spareWith18GST"
+                                type="number"
+                                placeholder="Enter Spare with 18% GST"
+                                value={operationData.spareWith18GST}
+                                onChange={(e) => setOperationData({ ...operationData, spareWith18GST: e.target.value })}
+                                className="h-10 w-64 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
+                              />
+                            </div>
+                            <div className="space-y-3">
+                              <Label htmlFor="spareWith28GST" className="text-sm font-medium">Spare with 28% GST</Label>
+                              <Input
+                                id="spareWith28GST"
+                                type="number"
+                                placeholder="Enter Spare with 28% GST"
+                                value={operationData.spareWith28GST}
+                                onChange={(e) => setOperationData({ ...operationData, spareWith28GST: e.target.value })}
                                 className="h-10 w-64 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
                               />
                             </div>
@@ -1449,66 +1461,6 @@ export default function OperationPage() {
                             </div>
                           </div>
 
-                          {/* GST Amounts Display */}
-                          {(operationData.spareWithoutTax || operationData.labour || operationData.outsideLabour) && (
-                            <div className="bg-blue-50 p-4 rounded-lg border">
-                              <h5 className="text-lg font-semibold mb-3 text-blue-800">GST Calculations</h5>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                {operationData.spareWithoutTax && operationData.discountOnParts && (
-                                  <div className="space-y-2">
-                                    <Label className="text-sm font-medium text-blue-700">Spare Discount Amount</Label>
-                                    <div className="text-lg font-semibold text-blue-900">₹{calculateTotalAmounts().spareDiscountAmount}</div>
-                                    <div className="text-sm text-blue-600">Spare After Discount: ₹{calculateTotalAmounts().spareAfterDiscount}</div>
-                                  </div>
-                                )}
-
-                                {operationData.spareWithoutTax && operationData.gstOnParts && (
-                                  <div className="space-y-2">
-                                    <Label className="text-sm font-medium text-blue-700">Spare GST Amount</Label>
-                                    <div className="text-lg font-semibold text-blue-900">₹{calculateTotalAmounts().spareGSTAmount}</div>
-                                    <div className="text-sm text-blue-600">Spare with GST: ₹{calculateTotalAmounts().spareWithGST}</div>
-                                  </div>
-                                )}
-
-                                {operationData.labour && operationData.discountLabour && (
-                                  <div className="space-y-2">
-                                    <Label className="text-sm font-medium text-blue-700">Labour Discount Amount</Label>
-                                    <div className="text-lg font-semibold text-blue-900">₹{calculateTotalAmounts().labourDiscountAmount}</div>
-                                    <div className="text-sm text-blue-600">Labour After Discount: ₹{calculateTotalAmounts().labourAfterDiscount}</div>
-                                  </div>
-                                )}
-
-                                {operationData.labour && operationData.gstOnLabour && (
-                                  <div className="space-y-2">
-                                    <Label className="text-sm font-medium text-blue-700">Labour GST Amount</Label>
-                                    <div className="text-lg font-semibold text-blue-900">₹{calculateTotalAmounts().labourGSTAmount}</div>
-                                    <div className="text-sm text-blue-600">Labour with GST: ₹{calculateTotalAmounts().labourWithGST}</div>
-                                  </div>
-                                )}
-
-                                {operationData.outsideLabour && (
-                                  <div className="space-y-2">
-                                    <Label className="text-sm font-medium text-blue-700">Outside Labour</Label>
-                                    <div className="text-lg font-semibold text-blue-900">₹{calculateTotalAmounts().outsideLabourWithGST}</div>
-                                    <div className="text-sm text-blue-600">(No GST applied)</div>
-                                  </div>
-                                )}
-                              </div>
-
-                              <div className="mt-4 pt-3 border-t border-blue-200">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                  <div className="space-y-1">
-                                    <Label className="text-sm font-medium text-blue-700">Total Without GST</Label>
-                                    <div className="text-lg font-semibold text-blue-900">₹{calculateTotalAmounts().totalWithoutGST}</div>
-                                  </div>
-                                  <div className="space-y-1">
-                                    <Label className="text-sm font-medium text-blue-700">Total With GST</Label>
-                                    <div className="text-lg font-semibold text-blue-900">₹{calculateTotalAmounts().totalWithGST}</div>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          )}
 
                           {/* Total Amount Fields */}
                           <div className="flex gap-12 mb-8">

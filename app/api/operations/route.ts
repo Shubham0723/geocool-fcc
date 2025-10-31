@@ -107,7 +107,11 @@ export async function POST(request: NextRequest) {
       return isNaN(parsed) ? 0 : parsed;
     };
 
-    // Parse numeric fields
+    // Parse numeric fields (add new fields)
+    const spareWith18GST = parseNumber(body.spareWith18GST);
+    const spareWith18GSTfinal = spareWith18GST * 1.18;
+    const spareWith28GST = parseNumber(body.spareWith28GST);
+    const spareWith28GSTfinal = spareWith28GST * 1.28;
     const amount = parseNumber(body.amount);
     const spareWithoutTax = parseNumber(body.spareWithoutTax);
     const labour = parseNumber(body.labour);
@@ -119,8 +123,8 @@ export async function POST(request: NextRequest) {
     // Calculate GST and totals
     const spareRate = body.spare === '18%' ? 0.18 : body.spare === '28%' ? 0.28 : 0;
     const discountOnPartsRate = body.discountOnParts === '18%' ? 0.18 : body.discountOnParts === '28%' ? 0.28 : 0;
-    const gstOnPartsRate = body.gstOnParts === '18%' ? 0.18 : body.gstOnParts === '28%' ? 0.28 : 0;
-    const gstOnLabourRate = body.gstOnLabour === '18%' ? 0.18 : body.gstOnLabour === '28%' ? 0.28 : 0;
+    const gstOnPartsRate = body.gstOnParts === '18%' ? 0.18 : body.gstOnParts === '28%' ? 0.28 : body.gstOnParts === '5%' ? 0.05 : 0;
+    const gstOnLabourRate = body.gstOnLabour === '18%' ? 0.18 : body.gstOnLabour === '28%' ? 0.28 : body.gstOnLabour === '5%' ? 0.05 : 0;
 
     // Calculate spare: First apply discount, then add GST on discounted amount
     const spareDiscountAmount = spareWithoutTax * discountOnPartsRate;
@@ -134,10 +138,10 @@ export async function POST(request: NextRequest) {
     const labourGSTAmount = labourAfterDiscount * gstOnLabourRate;
     const labourWithGST = labourAfterDiscount + labourGSTAmount;
 
-    // Calculate totals
-    const totalWithGST = amount + spareWithGST + labourWithGST + outsideLabour;
-    const totalWithoutGST = amount + spareWithoutTax + labour + outsideLabour;
-    const totalAmountWithDiscountButWithoutTax = spareAfterDiscount + labourAfterDiscount;
+    // Calculate totals (add these in the sums)
+    const totalWithGST = amount + spareWithGST + labourWithGST + outsideLabour + spareWith18GSTfinal + spareWith28GSTfinal;
+    const totalWithoutGST = amount + spareWithoutTax + labour + outsideLabour + spareWith18GSTfinal + spareWith28GSTfinal;
+    const totalAmountWithDiscountButWithoutTax = spareAfterDiscount + labourAfterDiscount + spareWith18GST + spareWith28GST;
 
     // Create new operation with all form fields according to new schema
     const newOperation = {
@@ -179,6 +183,8 @@ export async function POST(request: NextRequest) {
       gstOnParts: body.gstOnParts || '',
       discountLabour: discountLabour,
       gstOnLabour: body.gstOnLabour || '',
+      spareWith18GST: spareWith18GST,
+      spareWith28GST: spareWith28GST,
 
       // Calculated Fields
       totalInvAmountPayable: totalWithGST,
