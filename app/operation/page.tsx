@@ -724,6 +724,7 @@ export default function OperationPage() {
                             <Label htmlFor="invoiceNo" className="text-sm font-medium">Invoice No.</Label>
                             <Input
                               id="invoiceNo"
+                              type="number"
                               placeholder="Enter invoice number"
                               value={operationData.invoiceNo}
                               onChange={e => setOperationData({ ...operationData, invoiceNo: e.target.value })}
