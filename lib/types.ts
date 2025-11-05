@@ -175,3 +175,37 @@ export interface Operation {
   spareWith18GST?: number;
   spareWith28GST?: number;
 }
+
+// Vehicle Service Schedule Schema
+export interface VehicleServiceSchedule {
+  _id?: ObjectId;
+  vehicleNumber: string;
+  model: string;
+  make?: string;
+  date: Date;
+  services: Array<{
+    km: number;
+    work: string;
+    serviceDate: Date;
+  }>;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// AC Service Schedule Schema
+export interface ACServiceSchedule {
+  _id?: ObjectId;
+  vehicleNumber: string;
+  model: string;
+  make?: string;
+  acSerialNumber?: string; // AC Sr. No
+  acUnit?: string; // AC Unit
+  date: Date;
+  services: Array<{
+    km: string;
+    hours: string;
+    serviceDate: Date;
+  }>;
+  createdAt: Date;
+  updatedAt: Date;
+}

@@ -1,5 +1,5 @@
 import { getDatabase } from './mongodb';
-import { Vehicle, Driver, Ticket, Maintenance, VehicleDocument, Operation } from './types';
+import { Vehicle, Driver, Ticket, Maintenance, VehicleDocument, Operation, VehicleServiceSchedule, ACServiceSchedule } from './types';
 import { ObjectId } from 'mongodb';
 
 // Server-only database service to avoid client-side issues
@@ -199,5 +199,57 @@ export class DatabaseServiceServer {
     };
     const result = await this.db.collection('operations').insertOne(newOperation);
     return { ...newOperation, _id: result.insertedId };
+  }
+
+  // Vehicle Service Schedule
+  async getVehicleServiceSchedules(): Promise<VehicleServiceSchedule[]> {
+    return await this.db.collection('vehicle-service').find({}).toArray();
+  }
+
+  async createVehicleServiceSchedule(entry: Omit<VehicleServiceSchedule, '_id' | 'createdAt' | 'updatedAt'>): Promise<VehicleServiceSchedule> {
+    const now = new Date();
+    const newEntry = { ...entry, createdAt: now, updatedAt: now };
+    const result = await this.db.collection('vehicle-service').insertOne(newEntry);
+    return { ...newEntry, _id: result.insertedId };
+  }
+
+  // AC Service Schedule
+  async getACServiceSchedules(): Promise<ACServiceSchedule[]> {
+    return await this.db.collection('ac-service').find({}).toArray();
+  }
+
+  async createACServiceSchedule(entry: Omit<ACServiceSchedule, '_id' | 'createdAt' | 'updatedAt'>): Promise<ACServiceSchedule> {
+    const now = new Date();
+    const newEntry = { ...entry, createdAt: now, updatedAt: now };
+    const result = await this.db.collection('ac-service').insertOne(newEntry);
+    return { ...newEntry, _id: result.insertedId };
+  }
+
+  // New collections with hyphenated names
+  async createVehicleService(entry: Omit<VehicleServiceSchedule, '_id' | 'createdAt' | 'updatedAt'>): Promise<VehicleServiceSchedule> {
+    const now = new Date();
+    const newEntry = { ...entry, createdAt: now, updatedAt: now };
+    const result = await this.db.collection('vehicle-service').insertOne(newEntry);
+    return { ...newEntry, _id: result.insertedId };
+  }
+
+  async createACService(entry: Omit<ACServiceSchedule, '_id' | 'createdAt' | 'updatedAt'>): Promise<ACServiceSchedule> {
+    const now = new Date();
+    const newEntry = { ...entry, createdAt: now, updatedAt: now };
+    const result = await this.db.collection('ac-service').insertOne(newEntry);
+    return { ...newEntry, _id: result.insertedId };
+  }
+
+  // Append a new service item
+  async addVehicleServiceItem(id: string, serviceItem: { km: number; work: string; serviceDate: Date }) {
+    await this.db
+      .collection('vehicle-service')
+      .updateOne({ _id: new ObjectId(id) }, { $push: { services: serviceItem }, $set: { updatedAt: new Date() } });
+  }
+
+  async addACServiceItem(id: string, serviceItem: { hours: string; km: string; serviceDate: Date }) {
+    await this.db
+      .collection('ac-service')
+      .updateOne({ _id: new ObjectId(id) }, { $push: { services: serviceItem }, $set: { updatedAt: new Date() } });
   }
 }

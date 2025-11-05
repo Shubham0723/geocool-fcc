@@ -1,5 +1,5 @@
 import { getDatabase } from './mongodb';
-import { Vehicle, Driver, Ticket, Maintenance, VehicleDocument, Operation } from './schemas';
+import { Vehicle, Driver, Ticket, Maintenance, VehicleDocument, Operation, VehicleServiceSchedule, ACServiceSchedule } from './schemas';
 
 export class DatabaseService {
   private static instance: DatabaseService;
@@ -197,5 +197,44 @@ export class DatabaseService {
     };
     const result = await this.db.collection('operations').insertOne(newOperation);
     return { ...newOperation, _id: result.insertedId };
+  }
+
+  // Vehicle Service Schedule
+  async getVehicleServiceSchedules(): Promise<VehicleServiceSchedule[]> {
+    return await this.db.collection('vehicle_service_schedules').find({}).toArray();
+  }
+
+  async createVehicleServiceSchedule(entry: Omit<VehicleServiceSchedule, '_id' | 'createdAt' | 'updatedAt'>): Promise<VehicleServiceSchedule> {
+    const now = new Date();
+    const newEntry = { ...entry, createdAt: now, updatedAt: now };
+    const result = await this.db.collection('vehicle_service_schedules').insertOne(newEntry);
+    return { ...newEntry, _id: result.insertedId };
+  }
+
+  // AC Service Schedule
+  async getACServiceSchedules(): Promise<ACServiceSchedule[]> {
+    return await this.db.collection('ac_service_schedules').find({}).toArray();
+  }
+
+  async createACServiceSchedule(entry: Omit<ACServiceSchedule, '_id' | 'createdAt' | 'updatedAt'>): Promise<ACServiceSchedule> {
+    const now = new Date();
+    const newEntry = { ...entry, createdAt: now, updatedAt: now };
+    const result = await this.db.collection('ac_service_schedules').insertOne(newEntry);
+    return { ...newEntry, _id: result.insertedId };
+  }
+
+  // New collections with hyphenated names
+  async createVehicleService(entry: Omit<VehicleServiceSchedule, '_id' | 'createdAt' | 'updatedAt'>): Promise<VehicleServiceSchedule> {
+    const now = new Date();
+    const newEntry = { ...entry, createdAt: now, updatedAt: now };
+    const result = await this.db.collection('vehicle-service').insertOne(newEntry);
+    return { ...newEntry, _id: result.insertedId };
+  }
+
+  async createACService(entry: Omit<ACServiceSchedule, '_id' | 'createdAt' | 'updatedAt'>): Promise<ACServiceSchedule> {
+    const now = new Date();
+    const newEntry = { ...entry, createdAt: now, updatedAt: now };
+    const result = await this.db.collection('ac-service').insertOne(newEntry);
+    return { ...newEntry, _id: result.insertedId };
   }
 }

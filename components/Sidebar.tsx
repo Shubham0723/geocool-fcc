@@ -10,6 +10,7 @@ import {
   Ticket,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   LogOut,
   Menu,
   X,
@@ -39,9 +40,13 @@ const menuItems = [
     href: '/tickets',
   },
   {
-    name: 'KM',
+    name: 'Service Schedule',
     icon: RouteIcon,
-    href: '/km'
+    href: '/service-schedule',
+    children: [
+      { name: 'Vehicle Service Schedule', href: '/service-schedule/vehicle' },
+      { name: 'AC Service Schedule', href: '/service-schedule/ac' },
+    ],
   }
 ];
 
@@ -50,6 +55,7 @@ export function Sidebar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
+  const [openServiceSchedule, setOpenServiceSchedule] = useState<boolean>(false);
 
   // Close mobile menu when route changes
   useEffect(() => {
@@ -67,6 +73,11 @@ export function Sidebar() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // Expand Service Schedule section when navigating within it
+  useEffect(() => {
+    setOpenServiceSchedule(pathname.startsWith('/service-schedule'));
+  }, [pathname]);
 
   const handleLogout = async () => {
     try {
@@ -144,7 +155,49 @@ export function Sidebar() {
           <nav className="flex-1 space-y-1 px-2 py-4">
             {menuItems.map((item) => {
               const Icon = item.icon;
-              const isActive = pathname === item.href;
+              const isActive = pathname === item.href || (item.children && pathname.startsWith(item.href));
+
+              if (item.children) {
+                return (
+                  <div key={item.href} className="space-y-1">
+                    <button
+                      onClick={() => setOpenServiceSchedule(!openServiceSchedule)}
+                      className={cn(
+                        'w-full flex items-center justify-between rounded-lg px-3 py-3 transition-all duration-200',
+                        isActive ? 'bg-red-600 text-white shadow-md' : 'text-gray-700 hover:bg-red-50 hover:text-red-600'
+                      )}
+                    >
+                      <span className="flex items-center gap-3">
+                        <Icon className="h-5 w-5 flex-shrink-0" />
+                        {!collapsed && (
+                          <span className="text-sm font-medium">{item.name}</span>
+                        )}
+                      </span>
+                      {!collapsed && <ChevronDown className={cn('h-4 w-4 transition-transform', openServiceSchedule ? 'rotate-180' : 'rotate-0')} />}
+                    </button>
+
+                    {!collapsed && openServiceSchedule && (
+                      <div className="ml-8 space-y-1">
+                        {item.children.map((child) => {
+                          const childActive = pathname === child.href;
+                          return (
+                            <Link
+                              key={child.href}
+                              href={child.href}
+                              className={cn(
+                                'flex items-center rounded-lg px-3 py-2 text-sm transition-all duration-200',
+                                childActive ? 'bg-red-100 text-red-700' : 'text-gray-700 hover:bg-red-50 hover:text-red-600'
+                              )}
+                            >
+                              <span className="truncate">{child.name}</span>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              }
 
               return (
                 <Link

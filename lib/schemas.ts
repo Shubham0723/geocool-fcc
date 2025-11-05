@@ -209,3 +209,37 @@ export interface Operation {
   createdAt: Date; // When record was created
   updatedAt: Date; // When record was last updated
 }
+
+// Vehicle Service Schedule Schema
+export interface VehicleServiceSchedule {
+  _id?: ObjectId;
+  vehicleNumber: string;
+  model: string;
+  make?: string;
+  date: Date;
+  services: Array<{
+    km: number;
+    work: string;
+    serviceDate: Date;
+  }>;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// AC Service Schedule Schema
+export interface ACServiceSchedule {
+  _id?: ObjectId;
+  vehicleNumber: string;
+  model: string;
+  make?: string;
+  acSerialNumber?: string; // AC Sr. No
+  acUnit?: string; // AC Unit name/model
+  date: Date;
+  services: Array<{
+    km:string;
+    hours: string;
+    serviceDate: Date;
+  }>;
+  createdAt: Date;
+  updatedAt: Date;
+}

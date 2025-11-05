@@ -108,7 +108,7 @@ const OperationDetailsPage = () => {
     }
   };
 
-  if (!operation) return <div className="p-8">Loading or not found...</div>;
+  if (!operation) return <div className="p-8">Loading...</div>;
   return (
     <div className="max-w-6xl mx-auto p-6 bg-white rounded-lg shadow mt-10">
       <h1 className="text-2xl font-bold mb-4">Operation Details</h1>
