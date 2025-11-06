@@ -95,27 +95,27 @@ export async function PUT(
       );
     }
 
-    // Check if user has access to this operation based on amount and role
-    const userRole: string = (user as any).role || 'user';
-    let hasAccess = false;
+    // Check role-based permission using Total Inv Amount Payable
+    const userRole: string = ((user as any).role || 'user').toLowerCase();
+    const payable: number = Number(
+      operation.totalInvAmountPayable ?? operation.amount ?? 0
+    );
 
-    switch (userRole) {
-      case 'user':
-        hasAccess = operation.amount <= 2000;
-        break;
-      case 'admin':
-        hasAccess = operation.amount <= 5000;
-        break;
-      case 'superadmin':
-        hasAccess = true; // Can access all operations
-        break;
-      default:
-        hasAccess = operation.amount <= 2000;
+    let hasAccess = false;
+    if (userRole === 'user') {
+      // >0 and up to 2000
+      hasAccess = payable > 0 && payable <= 2000;
+    } else if (userRole === 'admin') {
+      // >2000 and up to 5000
+      hasAccess = payable > 0 && payable <= 5000;
+    } else if (userRole === 'superadmin' || userRole === 'super-admin') {
+      // greater than 5000
+      hasAccess = payable > 5000;
     }
 
     if (!hasAccess) {
       return NextResponse.json(
-        { success: false, message: 'Access denied. Insufficient permissions for this operation.' },
+        { success: false, message: 'You are not allowed to update' },
         { status: 403 }
       );
     }
