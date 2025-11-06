@@ -94,6 +94,24 @@ export default function OperationPage() {
     fetchOperationTypes();
   }, []);
 
+  // Helper to generate auto number in required format: PREFIX-dd/mm/yyyy-M
+  const generateAutoNumber = (prefix: 'SM' | 'AC') => {
+    const now = new Date();
+    const dd = String(now.getDate()).padStart(2, '0');
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const yyyy = String(now.getFullYear());
+    return `${prefix}-${dd}/${mm}/${yyyy}-M`;
+  };
+
+  // Auto fill Work Order No. / Advisor No. based on selected form type
+  useEffect(() => {
+    if (formType === 'vehicle-maintenance') {
+      setOperationData((d) => ({ ...d, workOrderNo: generateAutoNumber('SM') }));
+    } else if (formType === 'ac-maintenance') {
+      setOperationData((d) => ({ ...d, advisorNo: generateAutoNumber('AC') }));
+    }
+  }, [formType]);
+
   useEffect(() => {
     if (selectedVehicle && selectedVehicle._id) {
       fetchOperations(selectedVehicle._id.toString());
@@ -664,10 +682,10 @@ export default function OperationPage() {
                             <Label htmlFor="advisorNo" className="text-sm font-medium">Advisor No</Label>
                             <Input
                               id="advisorNo"
-                              placeholder="Enter advisor number"
+                              placeholder="Advisor number"
                               value={operationData.advisorNo}
-                              onChange={e => setOperationData({ ...operationData, advisorNo: e.target.value })}
-                              className="h-10 w-64"
+                              readOnly
+                              className="h-10 w-64 bg-gray-50"
                             />
                           </div>
                         </div>
@@ -1293,15 +1311,10 @@ export default function OperationPage() {
                             <Label htmlFor="workOrderNo" className="text-sm font-medium">Work Order No.</Label>
                             <Input
                               id="workOrderNo"
-                              placeholder="Enter work order number"
+                              placeholder="Work Order Number"
                               value={operationData.workOrderNo}
-                              onChange={(e) =>
-                                setOperationData({
-                                  ...operationData,
-                                  workOrderNo: e.target.value,
-                                })
-                              }
-                              className="h-10 w-64"
+                              readOnly
+                              className="h-10 w-64 bg-gray-50"
                             />
                           </div>
                         </div>
