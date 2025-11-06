@@ -165,7 +165,7 @@ export interface Operation {
   operationDate: Date;
   receiptNumber?: string;
   receiptUrl?: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'pending' | 'approved' | 'rejected' | 'completed';
   approvedBy?: string;
   createdAt: Date;
   updatedAt: Date;

@@ -19,9 +19,9 @@ export async function PUT(
       );
     }
 
-    if (!status || !['pending', 'approved', 'rejected'].includes(status)) {
+    if (!status || !['pending', 'approved', 'rejected', 'completed'].includes(status)) {
       return NextResponse.json(
-        { success: false, message: 'Invalid status. Must be pending, approved, or rejected' },
+        { success: false, message: 'Invalid status. Must be pending, approved, rejected, or completed' },
         { status: 400 }
       );
     }

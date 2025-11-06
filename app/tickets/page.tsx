@@ -141,6 +141,13 @@ export default function OperationsPage() {
             Rejected
           </Badge>
         );
+      case 'completed':
+        return (
+          <Badge className="bg-blue-100 text-blue-800">
+            <CheckCircle2 className="h-3 w-3 mr-1" />
+            Completed
+          </Badge>
+        );
       default:
         return <Badge>{status}</Badge>;
     }
@@ -233,6 +240,13 @@ export default function OperationsPage() {
           className={selectedStatus === 'rejected' ? 'bg-red-600 hover:bg-red-700' : ''}
         >
           Rejected
+        </Button>
+        <Button
+          variant={selectedStatus === 'completed' ? 'default' : 'outline'}
+          onClick={() => setSelectedStatus('completed')}
+          className={selectedStatus === 'completed' ? 'bg-red-600 hover:bg-red-700' : ''}
+        >
+          Completed
         </Button>
       </div>
 

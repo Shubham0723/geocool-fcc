@@ -119,6 +119,7 @@ const OperationDetailsPage = () => {
           <div><b>Vehicle Number:</b> {operation.vehicleNumber || vehicle?.vehicleNumber || '--'}</div>
           <div><b>Form Type:</b> {operation.formType || '--'}</div>
           <div><b>Operation Type:</b> {operation.operationType || '--'}</div>
+          <div><b>Sub Part Name:</b> {operation.subPartName || '--'}</div>
           {/* <div><b>Amount:</b> ₹{operation.amount?.toLocaleString() || '-'}</div> */}
           <div><b>Description:</b> {operation.description || '--'}</div>
           <div><b>Operation Date:</b> {operation.operationDate ? (new Date(operation.operationDate)).toLocaleDateString() : '--'}</div>
@@ -133,6 +134,7 @@ const OperationDetailsPage = () => {
               <SelectItem value="pending">Pending</SelectItem>
               <SelectItem value="approved">Approved</SelectItem>
               <SelectItem value="rejected">Rejected</SelectItem>
+              <SelectItem value="completed">Completed</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -148,6 +150,7 @@ const OperationDetailsPage = () => {
           <div><b>Invoice No:</b> {operation.invoiceNo || '--'}</div>
           <div><b>Invoice Date:</b> {operation.invoiceDate || '--'}</div>
           <div><b>Job Type:</b> {operation.jobType || '--'}</div>
+          <div><b>AMC/Non AMC:</b> {operation.amcNonAmc || '--'}</div>
         </div>
       </div>
 

@@ -44,6 +44,7 @@ export default function OperationPage() {
   const [formType, setFormType] = useState<'ac-maintenance' | 'vehicle-maintenance' | ''>('');
   const [operationData, setOperationData] = useState({
     operationType: '',
+    subPartName: '',
     amount: '',
     description: '',
     // AC Maintenance specific fields
@@ -79,6 +80,7 @@ export default function OperationPage() {
     jobType: '',
     spareWith18GST: '', // new
     spareWith28GST: '', // new
+    amcNonAmc: '', // AMC/Non AMC dropdown
   });
   // New state for dynamic types
   const [operationTypes, setOperationTypes] = useState<{ _id: string, Type_name: string }[]>([]);
@@ -325,6 +327,7 @@ export default function OperationPage() {
         body: JSON.stringify({
           vehicleNumber: selectedVehicle.vehicleNumber,
           operationType: operationData.operationType,
+          subPartName: operationData.subPartName,
           amount,
           description: operationData.description,
           operationDate: new Date(),
@@ -360,6 +363,7 @@ export default function OperationPage() {
           // Additional fields
           remark: operationData.remark,
           jobType: operationData.jobType,
+          amcNonAmc: operationData.amcNonAmc,
         }),
       });
 
@@ -370,6 +374,7 @@ export default function OperationPage() {
         });
         setOperationData({
           operationType: '',
+          subPartName: '',
           amount: '',
           description: '',
           acUnit: '',
@@ -402,6 +407,7 @@ export default function OperationPage() {
           jobType: '',
           spareWith18GST: '', // new for reset
           spareWith28GST: '', // new for reset
+          amcNonAmc: '', // reset AMC/Non AMC
         });
         setFile(null); setFileUrlPreview(null);
         setFormType('');
@@ -463,9 +469,21 @@ export default function OperationPage() {
                   <div
                     key={vehicle._id?.toString() || Math.random()}
                     className="p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0"
-                    onClick={() => {
-                      setSelectedVehicle(vehicle);
-                      setSearchTerm(vehicle.vehicleNumber);
+                    onClick={async () => {
+                      try {
+                        const res = await fetch(`/api/operations`);
+                        const data = await res.json();
+                        // Find operations for this vehicle with status not completed
+                        const blocked = Array.isArray(data) && data.some((op) => op.vehicleNumber === vehicle.vehicleNumber && op.status !== 'completed');
+                        if (blocked) {
+                          toast({ title: 'Info', description: 'This vehicle is still not completed.' });
+                        } else {
+                          setSelectedVehicle(vehicle);
+                          setSearchTerm(vehicle.vehicleNumber);
+                        }
+                      } catch (e) {
+                        toast({ title: 'Error', description: 'Failed to check operation status.' });
+                      }
                     }}
                   >
                     <div className="flex items-center justify-between">
@@ -482,6 +500,7 @@ export default function OperationPage() {
                         )}
                       />
                     </div>
+
                   </div>
                 ))}
               </div>
@@ -510,6 +529,23 @@ export default function OperationPage() {
                   <div>
                     <span className="text-gray-600">Branch:</span>
                     <p className="font-medium">{selectedVehicle.branch}</p>
+                  </div>
+                  {/* New fields */}
+                  <div>
+                    <span className="text-gray-600">Chassis No:</span>
+                    <p className="font-medium">{selectedVehicle.chassisNumber || '--'}</p>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Make:</span>
+                    <p className="font-medium">{selectedVehicle.make || '--'}</p>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Company Name:</span>
+                    <p className="font-medium">{selectedVehicle.companyName || '--'}</p>
+                  </div>
+                  <div className="sm:col-span-3">
+                    <span className="text-gray-600">Vehicle Details:</span>
+                    <p className="font-medium">{selectedVehicle.vehicleDetails || '--'}</p>
                   </div>
                 </div>
               </div>
@@ -585,6 +621,26 @@ export default function OperationPage() {
                       </div>
                     </div>
 
+                    {/* Sub Part Name */}
+                    <div className="space-y-3">
+                      <Label htmlFor="subPartName" className="text-sm font-medium">Sub Part Name</Label>
+                      <Select
+                        value={operationData.subPartName}
+                        onValueChange={(value) => setOperationData({ ...operationData, subPartName: value })}
+                      >
+                        <SelectTrigger id="subPartName" className="h-10 w-80">
+                          <SelectValue placeholder="Select sub part name" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="AC Service">AC Service</SelectItem>
+                          <SelectItem value="Engine">Engine</SelectItem>
+                          <SelectItem value="Tyre">Tyre</SelectItem>
+                          <SelectItem value="Battery">Battery</SelectItem>
+                          <SelectItem value="Labour">Labour</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
                     {/* AC Maintenance Specific Fields */}
                     {formType === 'ac-maintenance' && (
                       <>
@@ -614,6 +670,23 @@ export default function OperationPage() {
                               className="h-10 w-64"
                             />
                           </div>
+                        </div>
+
+                        {/* AMC/Non AMC */}
+                        <div className="space-y-3">
+                          <Label htmlFor="amcNonAmc" className="text-sm font-medium">AMC/Non AMC</Label>
+                          <Select
+                            value={operationData.amcNonAmc}
+                            onValueChange={(val) => setOperationData({ ...operationData, amcNonAmc: val })}
+                          >
+                            <SelectTrigger id="amcNonAmc" className="h-10 w-80">
+                              <SelectValue placeholder="Select AMC/Non AMC" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="AMC">AMC</SelectItem>
+                              <SelectItem value="Non AMC">Non AMC</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
 
                         {/* Date Send to W/S and Veh Ready Date from W/S */}
@@ -1142,6 +1215,23 @@ export default function OperationPage() {
                               </SelectContent>
                             </Select>
                           </div>
+                        </div>
+
+                        {/* AMC/Non AMC */}
+                        <div className="space-y-3">
+                          <Label htmlFor="amcNonAmcVehicle" className="text-sm font-medium">AMC/Non AMC</Label>
+                          <Select
+                            value={operationData.amcNonAmc}
+                            onValueChange={(val) => setOperationData({ ...operationData, amcNonAmc: val })}
+                          >
+                            <SelectTrigger id="amcNonAmcVehicle" className="h-10 w-80">
+                              <SelectValue placeholder="Select AMC/Non AMC" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="AMC">AMC</SelectItem>
+                              <SelectItem value="Non AMC">Non AMC</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
 
                         {/* Complaints and Action Taken */}

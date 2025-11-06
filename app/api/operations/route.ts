@@ -153,6 +153,7 @@ export async function POST(request: NextRequest) {
 
       // Core Operation Details
       operationType: body.operationType,
+      subPartName: body.subPartName || '',
       amount: amount,
       description: body.description || '',
 
@@ -194,6 +195,7 @@ export async function POST(request: NextRequest) {
       // Additional Fields
       remark: body.remark || '',
       jobType: body.jobType || '',
+      amcNonAmc: body.amcNonAmc || '',
 
       // System Fields
       createdAt: new Date(),

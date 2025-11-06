@@ -158,12 +158,13 @@ export interface Operation {
   vehicleNumber: string; // Vehicle number (string reference)
   vehicleId?: ObjectId; // Optional vehicle ID reference
   operationDate: Date; // Date when operation was recorded
-  status: 'pending' | 'approved' | 'rejected'; // Operation status
+  status: 'pending' | 'approved' | 'rejected' | 'completed'; // Operation status
   invoiceBill?: string; // URL to uploaded invoice bill document
   formType: 'ac-maintenance' | 'vehicle-maintenance'; // Type of form selected
 
   // Core Operation Details
   operationType: string; // Type of operation (from dropdown)
+  subPartName?: string; // New dropdown for sub part name
   amount: number; // Original base amount entered by user
   description?: string; // General description of operation (optional)
 
@@ -203,6 +204,7 @@ export interface Operation {
   // Additional Fields
   remark?: string; // Additional remarks
   jobType: 'Warranty Job' | 'Paid Service' | 'Paid Job' | 'FOC' | ''; // Type of job
+  amcNonAmc?: 'AMC' | 'Non AMC' | ''; // AMC/Non AMC selection
 
   // System Fields
   approvedBy?: string; // Who approved the operation
