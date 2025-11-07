@@ -194,6 +194,17 @@ export function VehicleForm({
         </Select>
       </div>
 
+      {/* Remark */}
+      <div className="space-y-2">
+        <Label htmlFor="remark">Remark</Label>
+        <Input
+          id="remark"
+          placeholder="e.g., Any remark about this vehicle"
+          value={vehicle.remark || ''}
+          onChange={(e) => handleFieldChange('remark', e.target.value)}
+        />
+      </div>
+
       {/* Document Upload Section */}
       {vehicle.vehicleNumber && (
         <DocumentSection
