@@ -107,7 +107,7 @@ export async function PUT(
       hasAccess = payable > 0 && payable <= 2000;
     } else if (userRole === 'admin') {
       // >2000 and up to 5000
-      hasAccess = payable > 0 && payable <= 5000;
+      hasAccess = payable > 2000 && payable <= 5000;
     } else if (userRole === 'superadmin' || userRole === 'super-admin') {
       // greater than 5000
       hasAccess = payable > 5000;

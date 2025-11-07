@@ -94,6 +94,21 @@ export default function OperationsPage() {
     fetchOperationTypes();
   }, [fetchOperations, fetchVehicles, fetchOperationTypes]);
 
+  // Fetch current user's role for My Tickets filter
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch('/api/auth/role', { credentials: 'include' });
+        const data = await res.json();
+        if (res.ok && data?.role) {
+          setUserRole(String(data.role).toLowerCase());
+        }
+      } catch (e) {
+        // ignore; default to 'user'
+      }
+    })();
+  }, []);
+
   // Reset visible count when filters change
   useEffect(() => {
     setVisibleCount(15);
@@ -153,13 +168,24 @@ export default function OperationsPage() {
     }
   };
 
-  const filteredOperations = operations.filter(
-    (operation) => {
-      const statusMatch = selectedStatus === 'all' || operation.status === selectedStatus;
-      const typeMatch = selectedType === 'all' || operation.operationType === selectedType;
-      return statusMatch && typeMatch;
+  // User role/range logic
+  const [userRole, setUserRole] = useState('user');
+  const filteredOperations = operations.filter((operation) => {
+    const typeMatch = selectedType === 'all' || operation.operationType === selectedType;
+    if (selectedStatus === 'my-tickets') {
+      const payable = Number(operation.totalInvAmountPayable ?? operation.amount ?? 0);
+      if (userRole === 'admin') {
+        return payable >= 2000 && payable <= 5000 && typeMatch;
+      }
+      if (userRole === 'super-admin' || userRole === 'superadmin') {
+        return payable > 5000 && typeMatch;
+      }
+      // user
+      return payable >= 0 && payable <= 2000 && typeMatch;
     }
-  );
+    const statusMatch = selectedStatus === 'all' || operation.status === selectedStatus;
+    return statusMatch && typeMatch;
+  });
 
   const visibleOperations = filteredOperations.slice(0, visibleCount);
 
@@ -247,6 +273,13 @@ export default function OperationsPage() {
           className={selectedStatus === 'completed' ? 'bg-red-600 hover:bg-red-700' : ''}
         >
           Completed
+        </Button>
+        <Button
+          variant={selectedStatus === 'my-tickets' ? 'default' : 'outline'}
+          onClick={() => setSelectedStatus('my-tickets')}
+          className={selectedStatus === 'my-tickets' ? 'bg-red-600 hover:bg-red-700' : ''}
+        >
+          My Tickets
         </Button>
       </div>
 
