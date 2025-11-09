@@ -62,7 +62,7 @@ type VerificationDocument = {
 type ExpiredLicenseDoc = {
   _id?: string;
   vehicleNumber: string;
-  documentType: 'PUC' | 'RC' | 'NP' | 'Insurance' | 'Road Tax' | 'Goods Permit';
+  documentType: 'PUC' | 'RC' | 'NP' | 'Insurance' | 'Road Tax' | 'Goods Permit' | 'Fitness';
   documentNumber: string;
   expiryDate: string | Date;
   issuingAuthority: string;
@@ -96,6 +96,7 @@ export default function DashboardPage() {
     rc: 0,
     roadTax: 0,
     goodsPermit: 0,
+    fitness: 0,
   });
 
   useEffect(() => {
@@ -131,6 +132,7 @@ export default function DashboardPage() {
     if (s === 'insurance') return 'Insurance';
     if (s === 'roadtax') return 'Road Tax';
     if (s === 'goodspermit') return 'Goods Permit';
+    if (s === 'fitness') return 'Fitness';
     return undefined;
   };
 
@@ -235,7 +237,7 @@ export default function DashboardPage() {
 
       // Filter license-related documents for expired licenses (PUC, RC, NP, Insurance, Road Tax, Goods Permit)
       const licenseDocs = normalizedDocs.filter((doc: any) =>
-        ['PUC', 'RC', 'NP', 'Insurance', 'Road Tax', 'Goods Permit'].includes(doc.documentType)
+        ['PUC', 'RC', 'NP', 'Insurance', 'Road Tax', 'Goods Permit', 'Fitness'].includes(doc.documentType)
       );
       setExpiredLicenses(licenseDocs);
       setFilteredLicenses(licenseDocs);
@@ -248,6 +250,7 @@ export default function DashboardPage() {
         rc: licenseDocs.filter((doc: any) => doc.documentType === 'RC').length,
         roadTax: licenseDocs.filter((doc: any) => doc.documentType === 'Road Tax').length,
         goodsPermit: licenseDocs.filter((doc: any) => doc.documentType === 'Goods Permit').length,
+        fitness: licenseDocs.filter((doc: any) => doc.documentType === 'Fitness').length,
       };
       setDocumentCounts(counts);
     } catch (error) {
@@ -550,6 +553,19 @@ export default function DashboardPage() {
             <p className="text-xs text-gray-500 mt-1">Expired Goods Permit</p>
           </CardContent>
         </Card>
+        <Card className="border-l-4 border-l-yellow-600 hover:shadow-lg transition-shadow">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-gray-600">
+              Fitness
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-yellow-600">
+              {documentCounts.fitness}
+            </div>
+            <p className="text-xs text-gray-500 mt-1">Expired Fitness</p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Expired Licenses Section */}
@@ -592,6 +608,7 @@ export default function DashboardPage() {
                     <SelectItem value="Insurance">Insurance</SelectItem>
                     <SelectItem value="Road Tax">Road Tax</SelectItem>
                     <SelectItem value="Goods Permit">Goods Permit</SelectItem>
+                    <SelectItem value='Fitness'>Fitness</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

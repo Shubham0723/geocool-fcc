@@ -100,52 +100,90 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Helper function to convert string to number safely
+    // Helper function
     const parseNumber = (value: any): number => {
       if (value === null || value === undefined || value === '') return 0;
       const parsed = parseFloat(value);
       return isNaN(parsed) ? 0 : parsed;
     };
 
-    // Parse numeric fields (add new fields)
-    const spareWith18GST = parseNumber(body.spareWith18GST);
-    const spareWith18GSTfinal = spareWith18GST * 1.18;
-    const spareWith28GST = parseNumber(body.spareWith28GST);
-    const spareWith28GSTfinal = spareWith28GST * 1.28;
+    // --- Define all input values safely ---
     const amount = parseNumber(body.amount);
+    const engineHrs = parseNumber(body.engineHrs);
+    const serviceKM = parseNumber(body.serviceKM);
     const spareWithoutTax = parseNumber(body.spareWithoutTax);
+    const discountOnParts = parseNumber(body.discountOnParts);
+    const spareWith5GSTValue = parseNumber(body.spareWith5GST);
+    const spareWith18GSTValue = parseNumber(body.spareWith18GST);
+    const spareWith28GSTValue = parseNumber(body.spareWith28GST);
     const labour = parseNumber(body.labour);
     const outsideLabour = parseNumber(body.outsideLabour);
     const discountLabour = parseNumber(body.discountLabour);
-    const engineHrs = parseNumber(body.engineHrs);
-    const serviceKM = parseNumber(body.serviceKM);
 
-    // Calculate GST and totals
-    const spareRate = body.spare === '18%' ? 0.18 : body.spare === '28%' ? 0.28 : 0;
-    const discountOnPartsRate = body.discountOnParts === '18%' ? 0.18 : body.discountOnParts === '28%' ? 0.28 : 0;
-    const gstOnPartsRate = body.gstOnParts === '18%' ? 0.18 : body.gstOnParts === '28%' ? 0.28 : body.gstOnParts === '5%' ? 0.05 : 0;
-    const gstOnLabourRate = body.gstOnLabour === '18%' ? 0.18 : body.gstOnLabour === '28%' ? 0.28 : body.gstOnLabour === '5%' ? 0.05 : 0;
+    // --- GST parsing ---
+    const gstOnParts =
+      body.gstOnParts === '18%'
+        ? 0.18
+        : body.gstOnParts === '28%'
+          ? 0.28
+          : body.gstOnParts === '5%'
+            ? 0.05
+            : 0;
 
-    // Calculate spare: First apply discount, then add GST on discounted amount
-    const spareDiscountAmount = spareWithoutTax * discountOnPartsRate;
+    const gstOnLabour =
+      body.gstOnLabour === '18%'
+        ? 0.18
+        : body.gstOnLabour === '28%'
+          ? 0.28
+          : body.gstOnLabour === '5%'
+            ? 0.05
+            : 0;
+
+    // --- SPARE CALCULATIONS ---
+    const spareDiscountAmount = spareWithoutTax * (discountOnParts / 100);
     const spareAfterDiscount = spareWithoutTax - spareDiscountAmount;
-    const spareGSTAmount = spareAfterDiscount * gstOnPartsRate;
+    const spareGSTAmount = spareAfterDiscount * gstOnParts;
     const spareWithGST = spareAfterDiscount + spareGSTAmount;
 
-    // Calculate labour: First apply discount as percentage, then add GST on discounted amount
-    const labourDiscountAmount = labour * (discountLabour / 100);
-    const labourAfterDiscount = labour - labourDiscountAmount;
-    const labourGSTAmount = labourAfterDiscount * gstOnLabourRate;
+    const spare5AfterDiscount = spareWith5GSTValue - spareWith5GSTValue * (discountOnParts / 100);
+    const spare18AfterDiscount = spareWith18GSTValue - spareWith18GSTValue * (discountOnParts / 100);
+    const spare28AfterDiscount = spareWith28GSTValue - spareWith28GSTValue * (discountOnParts / 100);
+
+    const spare5WithGST = spare5AfterDiscount * 1.05;
+    const spare18WithGST = spare18AfterDiscount * 1.18;
+    const spare28WithGST = spare28AfterDiscount * 1.28;
+
+    // --- LABOUR CALCULATIONS ---
+    const labourAfterDiscount = labour - labour * (discountLabour / 100);
+    const labourGSTAmount = labourAfterDiscount * gstOnLabour;
     const labourWithGST = labourAfterDiscount + labourGSTAmount;
 
-    // Calculate totals (add these in the sums)
-    const totalWithGST = amount + spareWithGST + labourWithGST + outsideLabour + spareWith18GSTfinal + spareWith28GSTfinal;
-    const totalWithoutGST = amount + spareWithoutTax + labour + outsideLabour + spareWith18GSTfinal + spareWith28GSTfinal;
-    const totalAmountWithDiscountButWithoutTax = spareAfterDiscount + labourAfterDiscount + spareWith18GST + spareWith28GST;
+    // --- OUTSIDE LABOUR CALCULATIONS ---
+    const outsideLabourDiscountAmount = outsideLabour * (discountLabour / 100);
+    const outsideLabourAfterDiscount = outsideLabour - outsideLabourDiscountAmount;
+    const outsideLabourGSTAmount = outsideLabourAfterDiscount * gstOnLabour;
+    const outsideLabourWithGST = outsideLabourAfterDiscount + outsideLabourGSTAmount;
 
-    // Create new operation with all form fields according to new schema
+    // --- TOTALS ---
+    const totalInvAmountPayable =
+      spareWithGST +
+      spare5WithGST +
+      spare18WithGST +
+      spare28WithGST +
+      labourWithGST +
+      outsideLabourWithGST;
+
+    const totalAmountWithDiscountButWithoutTax =
+      spareAfterDiscount +
+      spare5AfterDiscount +
+      spare18AfterDiscount +
+      spare28AfterDiscount +
+      labourAfterDiscount +
+      outsideLabourAfterDiscount;
+
+    // --- Create new operation ---
     const newOperation = {
-      vehicleNumber: vehicleNumber,
+      vehicleNumber,
       operationDate: body.operationDate || new Date(),
       status: 'pending',
       invoiceBill: body.invoiceBill || null,
@@ -154,10 +192,10 @@ export async function POST(request: NextRequest) {
       // Core Operation Details
       operationType: body.operationType,
       subPartName: body.subPartName || '',
-      amount: amount,
+      amount,
       description: body.description || '',
 
-      // Common Fields for both AC Maintenance and Vehicle Maintenance
+      // Common Fields
       dateSendToWS: body.dateSendToWS || '',
       workshop: body.workshop || '',
       complaints: body.complaints || '',
@@ -166,38 +204,38 @@ export async function POST(request: NextRequest) {
       invoiceNo: body.invoiceNo || '',
       invoiceDate: body.invoiceDate || '',
 
-      // AC Maintenance Specific Fields
+      // AC Maintenance Specific
       acUnit: body.acUnit || '',
-      engineHrs: engineHrs,
+      engineHrs,
       advisorNo: body.advisorNo || '',
 
-      // Vehicle Maintenance Specific Fields
-      serviceKM: serviceKM,
+      // Vehicle Maintenance Specific
+      serviceKM,
       workOrderNo: body.workOrderNo || '',
 
-      // Financial Details
+      // Financial Fields
       spare: body.spare || '',
-      spareWithoutTax: spareWithoutTax,
-      labour: labour,
-      outsideLabour: outsideLabour,
+      spareWithoutTax,
+      labour,
+      outsideLabour,
       discountOnParts: body.discountOnParts || '',
       gstOnParts: body.gstOnParts || '',
-      discountLabour: discountLabour,
+      discountLabour,
       gstOnLabour: body.gstOnLabour || '',
-      spareWith18GST: spareWith18GST,
-      spareWith28GST: spareWith28GST,
+      spareWith5GST: spareWith5GSTValue,
+      spareWith18GST: spareWith18GSTValue,
+      spareWith28GST: spareWith28GSTValue,
 
-      // Calculated Fields
-      totalInvAmountPayable: totalWithGST,
-      totalAmountWithDiscountButWithoutTax: totalAmountWithDiscountButWithoutTax,
-      labourWithGST: labourWithGST,
+      // Calculated
+      totalInvAmountPayable: totalInvAmountPayable.toFixed(2),
+      totalAmountWithDiscountButWithoutTax: totalAmountWithDiscountButWithoutTax.toFixed(2),
+      labourWithGST: labourWithGST.toFixed(2),
 
-      // Additional Fields
+      // Other Fields
       remark: body.remark || '',
       jobType: body.jobType || '',
       amcNonAmc: body.amcNonAmc || '',
 
-      // System Fields
       createdAt: new Date(),
       updatedAt: new Date(),
     };

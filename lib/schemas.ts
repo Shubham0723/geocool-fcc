@@ -187,14 +187,14 @@ export interface Operation {
   workOrderNo?: string; // Work order number
 
   // Financial Details
-  spare: '18%' | '28%' | ''; // Selected GST rate for spare parts
+  spare: '18%' | '28%' | '5%'; // Selected GST rate for spare parts
   spareWithoutTax?: number; // Amount of spare parts without tax
   labour?: number; // Labour charges
   outsideLabour?: number; // Outside labour charges
-  discountOnParts: '18%' | '28%' | ''; // Discount rate on parts
-  gstOnParts: '18%' | '28%' | ''; // GST rate on parts
+  gstOnParts: '18%' | '28%' | '5%'; // GST rate on parts
   discountLabour?: number; // Discount amount on labour
   gstOnLabour: '18%' | '28%' | ''; // GST rate on labour
+  spareWith5GST: number
   spareWith18GST: number;
   spareWith28GST: number;
   // Calculated Fields

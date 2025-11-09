@@ -80,6 +80,7 @@ export default function OperationPage() {
     jobType: '',
     spareWith18GST: '', // new
     spareWith28GST: '', // new
+    spareWith5GST: '',
     amcNonAmc: '', // AMC/Non AMC dropdown
   });
   // New state for dynamic types
@@ -239,6 +240,7 @@ export default function OperationPage() {
     const spareGSTAmount = spareAfterDiscount * gstOnParts;
     const spareWithGST = spareAfterDiscount + spareGSTAmount;
 
+    const spare5Value = parseFloat(operationData.spareWith5GST) || 0;
     const spare18Value = parseFloat(operationData.spareWith18GST) || 0;
     const spare28Value = parseFloat(operationData.spareWith28GST) || 0;
     // LABOUR GST LOGIC:
@@ -249,8 +251,10 @@ export default function OperationPage() {
     const labourGSTAmount = labourAfterDiscount * gstOnLabour;
     const labourWithGST = labourAfterDiscount + labourGSTAmount;
 
+    const spare5AfterDiscount = spare5Value - (spare5Value * (discountOnParts / 100));
     const spare18AfterDiscount = spare18Value - (spare18Value * (discountOnParts / 100));
     const spare28AfterDiscount = spare28Value - (spare28Value * (discountOnParts / 100));
+    const spare5WithGST = spare5AfterDiscount * 1.05;
     const spare18WithGST = spare18AfterDiscount * 1.18;
     const spare28WithGST = spare28AfterDiscount * 1.28;
 
@@ -263,6 +267,7 @@ export default function OperationPage() {
 
     const totalInvAmountPayable =
       spareWithGST +
+      spare5WithGST +
       spare18WithGST +
       spare28WithGST +
       labourWithGST +
@@ -270,6 +275,7 @@ export default function OperationPage() {
 
     const totalAmountWithDiscountButWithoutTax =
       spareAfterDiscount +
+      spare5AfterDiscount +
       spare18AfterDiscount +
       spare28AfterDiscount +
       labourAfterDiscount +
@@ -280,8 +286,10 @@ export default function OperationPage() {
       spareAfterDiscount: spareAfterDiscount.toFixed(2),
       spareGSTAmount: spareGSTAmount.toFixed(2),
       spareWithGST: spareWithGST.toFixed(2),
+      spare5AfterDiscount: spare5AfterDiscount.toFixed(2),
       spare18AfterDiscount: spare18AfterDiscount.toFixed(2),
       spare28AfterDiscount: spare28AfterDiscount.toFixed(2),
+      spare5WithGST: spare5WithGST.toFixed(2),
       spare18WithGST: spare18WithGST.toFixed(2),
       spare28WithGST: spare28WithGST.toFixed(2),
       labourAfterDiscount: labourAfterDiscount.toFixed(2),
@@ -376,6 +384,7 @@ export default function OperationPage() {
           gstOnParts: operationData.gstOnParts,
           discountLabour: operationData.discountLabour,
           gstOnLabour: operationData.gstOnLabour,
+          spareWith5GST:operationData.spareWith5GST,
           spareWith18GST: operationData.spareWith18GST,
           spareWith28GST: operationData.spareWith28GST,
           // Additional fields
@@ -425,6 +434,7 @@ export default function OperationPage() {
           jobType: '',
           spareWith18GST: '', // new for reset
           spareWith28GST: '', // new for reset
+          spareWith5GST: '',
           amcNonAmc: '', // reset AMC/Non AMC
         });
         setFile(null); setFileUrlPreview(null);
@@ -850,6 +860,17 @@ export default function OperationPage() {
 
                           {/* Spare with 18% GST and 28% GST */}
                           <div className="flex gap-8 mb-8">
+                            <div className='space-y-3'>
+                              <Label htmlFor="spareWith5GST" className="text-sm font-medium">Spare with 5% GST</Label>
+                              <Input
+                                id="spareWith5GST"
+                                type="number"
+                                placeholder="Enter Spare with 5% GST"
+                                value={operationData.spareWith5GST}
+                                onChange={(e) => setOperationData({ ...operationData, spareWith5GST: e.target.value })}
+                                className="h-10 w-64 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
+                              />
+                            </div>
                             <div className="space-y-3">
                               <Label htmlFor="spareWith18GST" className="text-sm font-medium">Spare with 18% GST</Label>
                               <Input
@@ -1380,6 +1401,17 @@ export default function OperationPage() {
 
                           {/* Spare with 18% GST and 28% GST */}
                           <div className="flex gap-8 mb-8">
+                            <div className='space-y-3'>
+                              <Label htmlFor="spareWith5GST" className="text-sm font-medium">Spare with 5% GST</Label>
+                              <Input
+                                id="spareWith5GST"
+                                type="number"
+                                placeholder="Enter Spare with 5% GST"
+                                value={operationData.spareWith5GST}
+                                onChange={(e) => setOperationData({ ...operationData, spareWith5GST: e.target.value })}
+                                className="h-10 w-64 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
+                              />
+                            </div>
                             <div className="space-y-3">
                               <Label htmlFor="spareWith18GST" className="text-sm font-medium">Spare with 18% GST</Label>
                               <Input
