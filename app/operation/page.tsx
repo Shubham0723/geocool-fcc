@@ -384,7 +384,7 @@ export default function OperationPage() {
           gstOnParts: operationData.gstOnParts,
           discountLabour: operationData.discountLabour,
           gstOnLabour: operationData.gstOnLabour,
-          spareWith5GST:operationData.spareWith5GST,
+          spareWith5GST: operationData.spareWith5GST,
           spareWith18GST: operationData.spareWith18GST,
           spareWith28GST: operationData.spareWith28GST,
           // Additional fields
@@ -1773,9 +1773,10 @@ export default function OperationPage() {
                           </td>
                           <td className="py-3 px-4">{operation.operationType}</td>
                           <td className="py-3 px-4 font-semibold text-red-600">
-                            {typeof operation.totalInvAmountPayable === 'number' && !isNaN(operation.totalInvAmountPayable)
-                              ? `₹${operation.totalInvAmountPayable.toLocaleString()}`
+                            {!isNaN(Number(operation.totalInvAmountPayable))
+                              ? `₹${Number(operation.totalInvAmountPayable).toLocaleString()}`
                               : '--'}
+
                           </td>
                           <td className="py-3 px-4 text-gray-600">
                             {operation.description || '--'}
